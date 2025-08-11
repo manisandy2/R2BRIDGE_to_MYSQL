@@ -1,0 +1,3 @@
+## R2BRIDGE_to_MYSQL
+
+uvicorn main:app -- reload
