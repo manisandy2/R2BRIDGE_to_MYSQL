@@ -36,7 +36,14 @@ class CloudflareR2Creds:
         self.SECRET_ACCESS_KEY = os.getenv("SECRET_ACCESS_KEY")
         self.BUCKET_NAME = os.getenv("BUCKET_NAME")
         self.ENDPOINT = os.getenv("ENDPOINT")
+        self.client = None
 
+
+
+    def get_client(self):
+        if not self.client:
+            if not all([self.ACCESS_KEY_ID, self.SECRET_ACCESS_KEY, self.ENDPOINT]):
+                raise ValueError("Missing Cloudflare R2 environment variables.")
         self.client = boto3.client(
             "s3",
             endpoint_url=self.ENDPOINT,
@@ -45,9 +52,6 @@ class CloudflareR2Creds:
             config=Config(signature_version="s3v4"),
             region_name="auto"
         )
-
-    def get_client(self):
-        """Return boto3 client."""
         return self.client
 
 # creds = CloudflareR2Creds()

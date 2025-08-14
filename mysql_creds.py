@@ -1,67 +1,79 @@
 import mysql.connector
-# import mysql.connector
 from dotenv import load_dotenv
 import os
-import json
+from mysql.connector import Error
+# import mysql
 
 load_dotenv()
 
 def mysql_connect():
-    return mysql.connector.connect(
-        host=os.getenv("HOST"),
-        user=os.getenv("MYSQL_USER"),
-        password=os.getenv("PASSWORD"),
-        database=os.getenv("DATABASE"),
-    )
+    print("Connecting to MySQL database...")
+    print(os.getenv("HOST"))
+    print(os.getenv("MYSQL_USER"))
+    print(os.getenv("PASSWORD"))
+    print(os.getenv("DATABASE"))
+    try:
+        conn = mysql.connector.connect(
+            host=os.getenv("HOST"),
+            user=os.getenv("MYSQL_USER"),
+            password=os.getenv("PASSWORD"),
+            database=os.getenv("DATABASE"),
+            port=3306
+        )
+        if conn.is_connected():
+            print("✅ MySQL connection established")
+            return conn
+        else:
+            raise ConnectionError("❌ MySQL connection could not be established")
+    except Error as e:
+        print(f"❌ Error connecting to MySQL: {e}")
+        return None
 
+ALLOWED_TABLES = ["Transaction", "employees","POS_Transactions"]
 
 class MysqlCatalog:
     def __init__(self):
         self.conn = mysql_connect()
-        self.cursor = self.conn.cursor()
-        # return self
+        self.cursor = self.conn.cursor(dictionary=True)
+        # self.table_name = "employees"
+        # self.table_name = "Transaction"
 
-    def close(self):
-        self.cursor.close()
-        self.conn.close()
+    def _validate_table(self, table_name: str):
+        if table_name not in ALLOWED_TABLES:
+            raise ValueError(f"Invalid table name: {table_name}")
 
-    def get_employees(self):
-        self.cursor.execute("SELECT * FROM employees")
+    def get_all_value(self,table_name):
+        self._validate_table(table_name)
+        self.cursor.execute(f"SELECT * FROM {table_name}")
         return self.cursor.fetchall()
 
-    def get_count(self):
-        self.cursor.execute("SELECT COUNT(*) FROM employees")
+
+
+    def get_count(self,table_name:str):
+        self._validate_table(table_name)
+        self.cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
         return self.cursor.fetchone()[0]
 
-    def get_describe(self):
-        self.cursor.execute("DESCRIBE employees")
+    def get_describe(self,table_name:str):
+        self._validate_table(table_name)
+        self.cursor.execute(f"DESCRIBE {table_name}")
         return self.cursor.fetchall()
 
-    # def get_range(self, start: int, end: int):
-    #     # cursor = self.connection.cursor()
-    #     self.cursor.execute(f"SELECT * FROM employees LIMIT {start}, {end - start}")
-    #     print(self.cursor.fetchall())
-    #     return self.cursor.fetchall()
-
-    
-    def get_range(self, start: int, end: int):
-        self.cursor.execute(f"SELECT * FROM employees LIMIT {start}, {end - start}")
-        # return  json.dumps(self.cursor.fetchall(), indent=2)
-        return self.cursor.fetchall()
-
-    def get_limits(self, limit: int):
-        query = "SELECT * FROM employees LIMIT %s"
-        self.cursor.execute(query, (limit,))
+    def get_range(self,table_name:str, start: int, end: int):
+        self._validate_table(table_name)
+        self.cursor.execute(f"SELECT * FROM {table_name} LIMIT {start}, {end - start}")
         return self.cursor.fetchall()
 
     def close(self):
-        self.cursor.close()
-        self.conn.close()
+        if self.cursor:
+            self.cursor.close()
+        if self.conn:
+            self.conn.close()
 
-sql = MysqlCatalog()
-# employees = mysql.get_employees()
-# print(employees)
-count = sql.get_count()
-print(count)
-describe = sql.get_describe()
-print(describe)
+# sql = MysqlCatalog()
+# # transaction = mysql.get_transaction()
+# # print(transaction)
+# count = sql.get_count()
+# print(count)
+# describe = sql.get_describe()
+# print(describe)
