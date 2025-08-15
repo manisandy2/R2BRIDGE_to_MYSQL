@@ -39,6 +39,6 @@ deploy-to-workers:
     # Install Wrangler CLI
     - npm install -g wrangler
     # Publish to Workers
-    - CLOUDFLARE_ACCOUNT_ID=${CF_ACCOUNT_ID} CLOUDFLARE_API_TOKEN=${CF_API_TOKEN} wrangler publish
+    - CLOUDFLARE_ACCOUNT_ID=${CF_ACCOUNT_ID} CLOUDFLARE_API_TOKEN=${CF_API_TOKEN} npx wrangler deploy
   only:
     - master
