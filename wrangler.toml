@@ -1,0 +1,5 @@
+name = "fastapi-worker"
+main = "worker.py"
+account_id = "a7562e46d10beec81b77d112e5000e4d"
+compatibility_date = "2025-08-15"
+compatibility_flags = ["python_workers"]

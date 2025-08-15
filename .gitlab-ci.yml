@@ -1,20 +1,44 @@
-image: python:3.11
+# image: python:3.11
+
+# variables:
+#   CF_ACCOUNT_ID: ${CF_ACCOUNT_ID}
+#   CF_API_TOKEN: ${CF_API_TOKEN}
+#   PROJECT_NAME: "my-fastapi-app"
+
+# stages:
+#   - deploy
+
+# deploy-to-cloudflare:
+#   stage: deploy
+#   script:
+#     - python -m venv venv
+#     - source venv/bin/activate
+#     - pip install -r requirements.txt
+#     - pip install wrangler  # Wrangler CLI for deployment
+#     - wrangler pages publish . --project-name=$PROJECT_NAME --branch=master
+#   only:
+#     - master
+
+image: node:20
 
 variables:
   CF_ACCOUNT_ID: ${CF_ACCOUNT_ID}
   CF_API_TOKEN: ${CF_API_TOKEN}
-  PROJECT_NAME: "my-fastapi-app"
 
 stages:
   - deploy
 
-deploy-to-cloudflare:
+deploy-to-workers:
   stage: deploy
   script:
-    - python -m venv venv
-    - source venv/bin/activate
-    - pip install -r requirements.txt
-    - pip install wrangler  # Wrangler CLI for deployment
-    - wrangler pages publish . --project-name=$PROJECT_NAME --branch=main
+    # Install Python
+    - echo CF_ACCOUNT_ID
+    - apt-get update && apt-get install -y python3 python3-pip
+    # Install Python dependencies into current directory
+    - pip3 install -r requirements.txt --target .
+    # Install Wrangler CLI
+    - npm install -g wrangler
+    # Publish to Workers
+    - wrangler publish
   only:
     - master
