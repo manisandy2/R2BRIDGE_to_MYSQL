@@ -34,7 +34,7 @@ ALLOWED_TABLES = ["Transaction", "employees","POS_Transactions"]
 class MysqlCatalog:
     def __init__(self):
         self.conn = mysql_connect()
-        self.cursor = self.conn.cursor(dictionary=True)
+        self.cursor = self.conn.cursor()
         # self.table_name = "employees"
         # self.table_name = "Transaction"
 
