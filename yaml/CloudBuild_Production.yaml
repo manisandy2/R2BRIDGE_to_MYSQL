@@ -1,14 +1,14 @@
-# File: stagedeploy.yaml
+# File: deploy.yaml
 steps:
     # build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/python-artifact-repo/python_apinode', '.', '--build-arg', 'CI_ENVIRONMENT_NAME=production' ]
+    args: [ 'build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/inv-artifact-repo/python_api', '.', '--build-arg', 'CI_ENVIRONMENT_NAME=production' ]
     # push the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: [ 'push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/python-artifact-repo/python_apinode']
+    args: [ 'push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/inv-artifact-repo/python_api']
     # deploy to Cloud Run
   - name: "gcr.io/cloud-builders/gcloud"
-    args: ['run', 'deploy', 'pythonapi', '--image', 'asia-south1-docker.pkg.dev/$PROJECT_ID/python-artifact-repo/python_apinode', '--region', 'asia-south1', '--platform', 'managed', '--allow-unauthenticated']
+    args: ['run', 'deploy', 'pythonapi', '--image', 'asia-south1-docker.pkg.dev/$PROJECT_ID/inv-artifact-repo/python_api', '--region', 'asia-south1', '--platform', 'managed', '--allow-unauthenticated']
 
 timeout: 3000s
 options: 
