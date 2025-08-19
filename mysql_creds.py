@@ -8,10 +8,10 @@ load_dotenv()
 
 def mysql_connect():
     print("Connecting to MySQL database...")
-    print(os.getenv("HOST"))
-    print(os.getenv("MYSQL_USER"))
-    print(os.getenv("PASSWORD"))
-    print(os.getenv("DATABASE"))
+    # print(os.getenv("HOST"))
+    # print(os.getenv("MYSQL_USER"))
+    # print(os.getenv("PASSWORD"))
+    # print(os.getenv("DATABASE"))
     try:
         conn = mysql.connector.connect(
             host=os.getenv("HOST"),
@@ -34,7 +34,8 @@ ALLOWED_TABLES = ["Transaction", "employees","POS_Transactions"]
 class MysqlCatalog:
     def __init__(self):
         self.conn = mysql_connect()
-        self.cursor = self.conn.cursor()
+        # self.cursor = self.conn.cursor()
+        self.cursor = self.conn.cursor(dictionary=True)
         # self.table_name = "employees"
         # self.table_name = "Transaction"
 
@@ -47,17 +48,21 @@ class MysqlCatalog:
         self.cursor.execute(f"SELECT * FROM {table_name}")
         return self.cursor.fetchall()
 
-
-
     def get_count(self,table_name:str):
         self._validate_table(table_name)
         self.cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-        return self.cursor.fetchone()[0]
+        # print("Count :",self.cursor.fetchone()["COUNT(*)"])
+        # print(self.cursor.fetchone()["COUNT(*)"])
+        return self.cursor.fetchone()["COUNT(*)"]
 
     def get_describe(self,table_name:str):
         self._validate_table(table_name)
         self.cursor.execute(f"DESCRIBE {table_name}")
-        return self.cursor.fetchall()
+        # print("Describe:",self.cursor.fetchall())
+        # return self.cursor.fetchall()
+        result = self.cursor.fetchall()
+        # print("Describe:", result)
+        return result
 
     def get_range(self,table_name:str, start: int, end: int):
         self._validate_table(table_name)
@@ -70,10 +75,3 @@ class MysqlCatalog:
         if self.conn:
             self.conn.close()
 
-# sql = MysqlCatalog()
-# # transaction = mysql.get_transaction()
-# # print(transaction)
-# count = sql.get_count()
-# print(count)
-# describe = sql.get_describe()
-# print(describe)
