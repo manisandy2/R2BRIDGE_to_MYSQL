@@ -682,7 +682,7 @@ def delete_files(
         return {"error": str(e)}
     
 
-@app.post("/Transaction/bucket/IncrestOne")
+@app.post("/Transaction/bucket/insertone")
 def create_bucket_single_store(
         model: dict = Body(..., description="JSON model to store in R2"),
         bucket_path: str = Query("iceberg_json", description="Folder path in R2 (default: iceberg_json)")
