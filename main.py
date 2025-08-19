@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Query,HTTPException
+from fastapi import FastAPI,Query,Body,HTTPException
 # from mysql_catalog import MysqlCatalog
 from .mysql_creds import  MysqlCatalog
 from pyiceberg.exceptions import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError
@@ -606,6 +606,7 @@ def create_table_json_store(
         "files": uploaded_files,
         "elapsed_time": f"{minutes} minutes {seconds} seconds"
     }
+
 @app.get("/Transaction/bucket/list")
 def get_bucket_list(
     namespace: str = Query(..., description="Namespace (e.g. 'Namespace')"),
@@ -679,3 +680,50 @@ def delete_files(
 
     except Exception as e:
         return {"error": str(e)}
+    
+
+@app.post("/Transaction/bucket/IncrestOne")
+def create_bucket_single_store(
+        model: dict = Body(..., description="JSON model to store in R2"),
+        bucket_path: str = Query("iceberg_json", description="Folder path in R2 (default: iceberg_json)")
+):
+    start_time = time.time()
+
+    try:
+        cloud_r2_creds = CloudflareR2Creds()
+        r2_client = cloud_r2_creds.get_client()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize R2 client: {str(e)}")
+
+    uploaded_files = []
+
+    # Ensure primary key exists
+    if "serial_no" not in model:
+        raise HTTPException(status_code=400, detail="serial_no field is required in the model")
+
+    try:
+        serial_no = str(model["serial_no"])
+        model["serial_no"] = serial_no
+
+        # Store object in R2
+        r2_key = f"{bucket_path.rstrip('/')}/{serial_no}.json"
+
+        r2_client.put_object(
+            Bucket=os.getenv("BUCKET_NAME"),
+            Key=r2_key,
+            Body=json.dumps(model, indent=2, cls=CustomJSONEncoder).encode("utf-8")
+        )
+        uploaded_files.append(r2_key)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload object to R2: {str(e)}")
+
+    elapsed = time.time() - start_time
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
+
+    return {
+        "message": f"{len(uploaded_files)} JSON file uploaded to R2",
+        "files": uploaded_files,
+        "Elapsed time": f"{minutes} minutes {seconds} seconds"
+    }
