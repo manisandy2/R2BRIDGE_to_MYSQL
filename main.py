@@ -11,6 +11,7 @@ from pyiceberg.schema import Schema, NestedField
 import json
 import time
 import os
+from typing import List
 from fastapi import FastAPI, Query, HTTPException
 from pyiceberg.catalog import load_catalog
 from pyiceberg.expressions import GreaterThanOrEqual,EqualTo
@@ -724,6 +725,140 @@ def create_bucket_single_store(
 
     return {
         "message": f"{len(uploaded_files)} JSON file uploaded to R2",
+        "files": uploaded_files,
+        "Elapsed time": f"{minutes} minutes {seconds} seconds"
+    }
+
+
+
+
+@app.post("/Transaction/bucket/insertMany")
+def create_bucket_multiple_store(
+        models: List[dict] = Body(..., description="List of JSON models to store in R2"),
+        bucket_path: str = Query("iceberg_json", description="Folder path in R2 (default: iceberg_json)")
+):
+    start_time = time.time()
+
+    try:
+        cloud_r2_creds = CloudflareR2Creds()
+        r2_client = cloud_r2_creds.get_client()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize R2 client: {str(e)}")
+
+    uploaded_files = []
+
+    try:
+        for model in models:
+            print("serial :",model["serial_no"])
+            if "serial_no" not in model:
+                raise HTTPException(status_code=400, detail="Each model must have a serial_no field")
+
+            serial_no = str(model["serial_no"])
+            model["serial_no"] = serial_no  # ensure string
+
+            # Key path for R2
+            r2_key = f"{bucket_path.rstrip('/')}/{serial_no}.json"
+
+            metadata = {
+                "author": "Mani",
+                "project": "CentralInventory",
+                "serial_no": serial_no
+            }
+
+            # Upload JSON object
+            r2_client.put_object(
+                Bucket=os.getenv("BUCKET_NAME"),
+                Key=r2_key,
+                Body=json.dumps(model, indent=2, cls=CustomJSONEncoder).encode("utf-8"),
+                ContentType="application/json",
+                Metadata=metadata,
+            )
+            uploaded_files.append(r2_key)
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to upload objects to R2: {str(e)}")
+
+    elapsed = time.time() - start_time
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
+
+    return {
+        "message": f"{len(uploaded_files)} JSON files uploaded to R2",
+        "files": uploaded_files,
+        "Elapsed time": f"{minutes} minutes {seconds} seconds"
+    }
+
+
+def upload_file(r2_client, bucket: str, key: str, body: bytes, metadata: dict):
+    """Helper function to upload a single file to R2"""
+    try:
+        r2_client.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=body,
+            ContentType="application/json",
+            Metadata=metadata,
+        )
+        return key
+    except Exception as e:
+        raise RuntimeError(f"Upload failed for {key}: {str(e)}")
+
+
+@app.post("/Transaction/bucket/insertMany/fast")
+def create_bucket_multiple_store_fast(
+    models: List[dict] = Body(..., description="List of JSON models to store in R2"),
+    bucket_path: str = Query("iceberg_json", description="Folder path in R2 (default: iceberg_json)")
+):
+    start_time = time.time()
+
+    try:
+        cloud_r2_creds = CloudflareR2Creds()
+        r2_client = cloud_r2_creds.get_client()
+        bucket = os.getenv("BUCKET_NAME")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize R2 client: {str(e)}")
+
+    uploaded_files = []
+    futures = []
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        for model in models:
+            print("serial :", model["serial_no"])
+            if "serial_no" not in model:
+                raise HTTPException(status_code=400, detail="Each model must have a serial_no field")
+
+            serial_no = str(model["serial_no"])
+            model["serial_no"] = serial_no  # ensure string
+
+            # Key path
+            r2_key = f"{bucket_path.rstrip('/')}/{serial_no}.json"
+
+            # Metadata
+            metadata = {
+                "author": "Mani",
+                "project": "CentralInventory",
+                "serial_no": serial_no
+            }
+
+            # File body
+            body = json.dumps(model, indent=2, cls=CustomJSONEncoder).encode("utf-8")
+
+            # Submit task
+            futures.append(executor.submit(upload_file, r2_client, bucket, r2_key, body, metadata))
+
+        # Collect results
+        for future in as_completed(futures):
+            try:
+                uploaded_files.append(future.result())
+            except Exception as e:
+                print(f"Upload failed: {e}")
+
+    elapsed = time.time() - start_time
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
+
+    return {
+        "message": f"{len(uploaded_files)} JSON files uploaded to R2",
         "files": uploaded_files,
         "Elapsed time": f"{minutes} minutes {seconds} seconds"
     }
