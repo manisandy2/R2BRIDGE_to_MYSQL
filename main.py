@@ -580,7 +580,7 @@ def create_table_json_store(
             batch = rows[i:i + BATCH_SIZE]
 
             # file_key = f"iceberg_json/{namespace}_{table_name}/batch_{i//BATCH_SIZE}.json"
-            file_key = f"iceberg_json/{rows[i]["pri_id"]}.json"
+            file_key = f"iceberg_json/{rows[i]['pri_id']}.json"
             body = json.dumps(batch, indent=2, cls=CustomJSONEncoder).encode("utf-8")
 
             futures.append(executor.submit(upload_file, r2_client, bucket, file_key, body))
