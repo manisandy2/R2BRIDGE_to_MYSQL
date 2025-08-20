@@ -2,11 +2,11 @@
 from dotenv import load_dotenv
 import os
 from pyiceberg.catalog.rest import RestCatalog
-import logging
+# import logging
 from fastapi import HTTPException
 
 load_dotenv()
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 
 class Creds:
