@@ -581,7 +581,7 @@ def create_table_json_store(
         }
 
 BATCH_SIZE = 1   # rows per JSON file
-MAX_WORKERS = 10    # parallel uploads
+MAX_WORKERS = 20    # parallel uploads
 
 def upload_file(r2_client, bucket, key, body):
     """Helper to upload a file to R2."""
