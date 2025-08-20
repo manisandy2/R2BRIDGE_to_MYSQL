@@ -3,7 +3,7 @@ from botocore.exceptions import ClientError
 import logging, json
 from ..core.r2_client import get_r2_client
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/bucket", tags=["R2 Bucket"])
 
 @router.get("/list-buckets")
@@ -38,7 +38,8 @@ async def upload_object(
         r2_client.put_object(Bucket=bucket_name, Key=object_key, Body=file_content)
         return {"message": f"✅ Object '{object_key}' uploaded to bucket '{bucket_name}'"}
     except ClientError as e:
-        logger.error(f"Upload failed: {e}")
+
+        # logger.error(f"Upload failed: {e}")
         # raise HTTPException(status_code=400, detail=f"Upload failed: {e.response['Error']['Message']}")
 
 
@@ -58,7 +59,7 @@ def delete_folder(
         r2_client.delete_objects(Bucket=bucket_name, Delete={"Objects": objects_to_delete})
         return {"message": f" Folder '{folder_path}' deleted with {len(objects_to_delete)} objects"}
     except ClientError as e:
-        logger.error(f"Delete folder failed: {e}")
+        # logger.error(f"Delete folder failed: {e}")
         raise HTTPException(status_code=400, detail=f"Delete folder failed: {e.response['Error']['Message']}")
 
 
@@ -78,7 +79,7 @@ def delete_bucket(bucket_name: str = Query(..., description="Bucket name"),
         r2_client.delete_bucket(Bucket=bucket_name)
         return {"message": f"🗑️ Bucket '{bucket_name}' deleted successfully"}
     except ClientError as e:
-        logger.error(f"Bucket deletion failed: {e}")
+        # logger.error(f"Bucket deletion failed: {e}")
         raise HTTPException(status_code=400, detail=e.response["Error"]["Message"])
 
 @router.post("/save")
@@ -115,5 +116,5 @@ def save_json(
         return {"message": f"✅ JSON saved as {object_key}", "id": new_id, "data": model}
 
     except ClientError as e:
-        logger.error(f"Save JSON failed: {e}")
+        # logger.error(f"Save JSON failed: {e}")
         raise HTTPException(status_code=400, detail=e.response["Error"]["Message"])
