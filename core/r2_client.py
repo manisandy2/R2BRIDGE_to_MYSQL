@@ -41,5 +41,5 @@ def get_r2_client():
     try:
         return CloudflareR2Creds().get_client()
     except Exception as e:
-        logger.error(f"Failed to initialize R2 client: {e}")
+        # logger.error(f"Failed to initialize R2 client: {e}")
         raise HTTPException(status_code=500, detail="Cloudflare R2 client initialization failed")
