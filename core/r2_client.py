@@ -2,12 +2,12 @@ import os
 from dotenv import load_dotenv
 import boto3
 from botocore.client import Config
-import logging
+# import logging
 from fastapi import HTTPException
 
 
 load_dotenv()
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 class CloudflareR2Creds:
     def __init__(self):
