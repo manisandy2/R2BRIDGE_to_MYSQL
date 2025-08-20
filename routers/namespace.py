@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter,HTTPException,Query
 from ..core.catalog_client import get_catalog_client
-import logging
+# import logging
 from pyiceberg.exceptions import NamespaceAlreadyExistsError,NoSuchNamespaceError
 
 # logger = logging.getLogger(__name__)

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query, Body, HTTPException,UploadFile, File
 from botocore.exceptions import ClientError
-import logging, json
+# import logging
+import json
 from ..core.r2_client import get_r2_client
 
 # logger = logging.getLogger(__name__)
@@ -39,7 +40,6 @@ async def upload_object(
         return {"message": f"✅ Object '{object_key}' uploaded to bucket '{bucket_name}'"}
     except ClientError as e:
 
-        # logger.error(f"Upload failed: {e}")
         raise HTTPException(status_code=400, detail=f"Upload failed: {e.response['Error']['Message']}")
 
 
