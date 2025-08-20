@@ -2,6 +2,7 @@ from fastapi import FastAPI,Query,Body,HTTPException
 # from mysql_catalog import MysqlCatalog
 from .mysql_creds import  MysqlCatalog
 from pyiceberg.exceptions import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError
+from pyiceberg.expressions import And, GreaterThanOrEqual, LessThanOrEqual
 # from creds import Creds
 from .creds import Creds, CloudflareR2Creds
 from pydantic import BaseModel
@@ -398,8 +399,6 @@ def read_table(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read Iceberg table: {str(e)}")
-
-from pyiceberg.expressions import And, GreaterThanOrEqual, LessThanOrEqual
 
 @app.get("/Transaction/table/dataWithFilter")
 def read_table(
