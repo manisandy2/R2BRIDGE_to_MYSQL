@@ -30,5 +30,5 @@ def get_catalog_client():
     try:
         return Creds().catalog_valid()
     except Exception as e:
-        logger.error(f"Failed to initialize Iceberg catalog client: {e}")
+        # logger.error(f"Failed to initialize Iceberg catalog client: {e}")
         raise HTTPException(status_code=500, detail="Cloudflare R2 client initialization failed")
