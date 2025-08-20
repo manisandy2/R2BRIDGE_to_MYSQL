@@ -23,10 +23,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import re
 from mysql.connector import Error
 import pandas as pd
-import logging
+# import logging
 from .routers import bucket,namespace,objects_folder,json_data_store
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
