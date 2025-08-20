@@ -399,7 +399,44 @@ def read_table(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read Iceberg table: {str(e)}")
 
+from pyiceberg.expressions import And, GreaterThanOrEqual, LessThanOrEqual
 
+@app.get("/Transaction/table/dataWithFilter")
+def read_table(
+    namespace: str = Query(..., description="Namespace (e.g. 'Namespace')"),
+    table_name: str = Query(..., description="Table name (e.g. 'Table name')"),
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD)")
+):
+    try:
+        catalog = Creds().catalog_valid()
+        table = catalog.load_table((namespace, table_name))
+
+        # Convert to ISO timestamps (assuming CreatedDate is stored as timestamp or date)
+        start = f"{start_date}T00:00:00"
+        end = f"{end_date}T23:59:59"
+
+        # Build filter expression
+        filter_expr = And(
+            GreaterThanOrEqual("CreatedDate", start),
+            LessThanOrEqual("CreatedDate", end),
+        )
+
+        # Apply filter at scan level
+        reader = table.scan(row_filter=filter_expr).to_arrow()
+        df = reader.to_pandas()
+
+        df = df.replace({pd.NA: None, float("nan"): None, float("inf"): None, -float("inf"): None})
+
+        return {
+            "namespace": namespace,
+            "table_name": table_name,
+            "records_count": len(df),
+            "data": df.to_dict(orient="records")
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read Iceberg table: {str(e)}")
 
 
 @app.get("/transactions/table/Inspect")
@@ -611,7 +648,8 @@ def create_table_json_store(
 @app.get("/Transaction/bucket/list")
 def get_bucket_list(
     namespace: str = Query(..., description="Namespace (e.g. 'Namespace')"),
-    table_name: str = Query(..., description="Table name (e.g. 'Table name')")
+    table_name: str = Query(..., description="Table name (e.g. 'Table name')"),
+    folder_path: str = Query(..., description="Folder Path (e.g. 'Folder Path')")
 ):
 
     cloud_r2_creds = CloudflareR2Creds()
@@ -619,7 +657,7 @@ def get_bucket_list(
     bucket = os.getenv("BUCKET_NAME")
 
     # prefix = f"iceberg_json/{namespace}_{table_name}/"
-    prefix = f"iceberg_json/"
+    prefix = f"{folder_path}/"
 
     try:
         response = r2_client.list_objects_v2(Bucket=bucket, Prefix=prefix)
@@ -862,3 +900,124 @@ def create_bucket_multiple_store_fast(
         "files": uploaded_files,
         "Elapsed time": f"{minutes} minutes {seconds} seconds"
     }
+
+@app.get("/Transaction/bucket/listWithTotalCount")
+def get_bucket_list(
+    namespace: str = Query(..., description="Namespace (e.g. 'Namespace')"),
+    folder_path: str = Query(..., description="Folder Path (e.g. 'Folder Path')")
+):
+    cloud_r2_creds = CloudflareR2Creds()
+    r2_client = cloud_r2_creds.get_client()
+    bucket = os.getenv("BUCKET_NAME")
+
+    prefix = f"{folder_path}/"
+
+    try:
+        files = []
+        continuation_token = None
+
+        while True:
+            if continuation_token:
+                response = r2_client.list_objects_v2(
+                    Bucket=bucket,
+                    Prefix=prefix,
+                    ContinuationToken=continuation_token
+                )
+            else:
+                response = r2_client.list_objects_v2(
+                    Bucket=bucket,
+                    Prefix=prefix
+                )
+
+            if "Contents" in response:
+                files.extend([obj["Key"] for obj in response["Contents"]])
+
+            # Check if there are more objects to fetch
+            if response.get("IsTruncated"):
+                continuation_token = response.get("NextContinuationToken")
+            else:
+                break
+
+        return {
+            "namespace": namespace,
+            "path name": folder_path,
+            "total_files": len(files),   # ✅ total number of objects
+            "files": files               # ✅ all object keys
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.get("/Transaction/bucket/listWithPagination")
+def get_bucket_list(
+    namespace: str = Query(..., description="Namespace (e.g. 'Namespace')"),
+    folder_path: str = Query(..., description="Folder Path (e.g. 'Folder Path')"),
+    page_size: int = Query(100, description="Max number of files to return (default=100, max=1000)"),
+    continuation_token: str = Query(None, description="Token for pagination (use value from previous response)")
+):
+    cloud_r2_creds = CloudflareR2Creds()
+    r2_client = cloud_r2_creds.get_client()
+    bucket = os.getenv("BUCKET_NAME")
+
+    prefix = f"{folder_path}/"
+
+    try:
+        # Enforce max page size (S3/R2 supports up to 1000)
+        page_size = min(page_size, 1000)
+
+        if continuation_token:
+            response = r2_client.list_objects_v2(
+                Bucket=bucket,
+                Prefix=prefix,
+                MaxKeys=page_size,
+                ContinuationToken=continuation_token
+            )
+        else:
+            response = r2_client.list_objects_v2(
+                Bucket=bucket,
+                Prefix=prefix,
+                MaxKeys=page_size
+            )
+
+        files = []
+        if "Contents" in response:
+            files = [obj["Key"] for obj in response["Contents"]]
+
+        return {
+            "namespace": namespace,
+            "path name": folder_path,
+            "returned_files": len(files),
+            "files": files,
+            "is_truncated": response.get("IsTruncated", False),
+            "next_token": response.get("NextContinuationToken")  # 🔑 use this for next page
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.get("/Transaction/bucket/object-total-count")
+def get_bucket_total_count(
+    namespace: str = Query(..., description="Namespace (e.g. 'Namespace')"),
+    folder_path: str = Query(..., description="Folder Path (e.g. 'Folder Path')")
+):
+    cloud_r2_creds = CloudflareR2Creds()
+    r2_client = cloud_r2_creds.get_client()
+    bucket = os.getenv("BUCKET_NAME")
+
+    prefix = f"{folder_path}/"
+
+    try:
+        total_count = 0
+
+        paginator = r2_client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+            if "Contents" in page:
+                total_count += len(page["Contents"])
+
+        return {
+            "namespace": namespace,
+            "total_files": total_count
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
