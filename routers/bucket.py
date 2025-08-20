@@ -40,7 +40,7 @@ async def upload_object(
     except ClientError as e:
 
         # logger.error(f"Upload failed: {e}")
-        # raise HTTPException(status_code=400, detail=f"Upload failed: {e.response['Error']['Message']}")
+        raise HTTPException(status_code=400, detail=f"Upload failed: {e.response['Error']['Message']}")
 
 
 @router.delete("/delete-folder")
