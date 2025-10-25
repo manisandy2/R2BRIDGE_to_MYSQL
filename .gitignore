@@ -18,3 +18,6 @@ __pycache__/
 # Editor-based HTTP Client requests
 /httpRequests/
 /json_backups/
+.gitlab-ci.yml
+yaml/CloudBuild_Production.yaml
+
