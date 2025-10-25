@@ -150,7 +150,7 @@ def create_table_json_store(
             batch = rows[i:i + BATCH_SIZE]
 
             # file_key = f"iceberg_json/{namespace}_{table_name}/batch_{i//BATCH_SIZE}.json"
-            file_key = f"{bucket_path}/{rows[i]["pri_id"]}.json"
+            file_key = f"{bucket_path}/{rows[i]['pri_id']}.json"
             body = json.dumps(batch, indent=2, cls=CustomJSONEncoder).encode("utf-8")
 
             futures.append(executor.submit(upload_file, r2_client, bucket_name, file_key, body))
@@ -362,4 +362,113 @@ def create_bucket_multiple_store_fast(
         "message": f"{len(uploaded_files)} JSON files uploaded to R2",
         "files": uploaded_files,
         "Elapsed time": f"{minutes} minutes {seconds} seconds"
+    }
+
+
+@router.post("/insertOne")
+def single_store_json(
+        bucket_name: str = Query(..., title="Bucket Name"),
+        bucket_path: str = Query("iceberg_json", description="Folder path in R2 (default: iceberg_json)"),
+        model: dict = Body(..., description="List of JSON models to store in R2"),
+):
+        start_time = time.time()
+        r2_client = get_r2_client()
+        uploaded_files = []
+
+        serial_no = model.get("serial_no", str(uuid.uuid4()))
+        model["serial_no"] = serial_no
+
+        r2_key = f"{bucket_path}/{serial_no}.json"
+
+        r2_client.put_object(
+            Bucket=bucket_name,
+            Key=r2_key,
+            Body=json.dumps(model, indent=2, cls=CustomJSONEncoder).encode("utf-8")
+        )
+        uploaded_files.append(r2_key)
+        elapsed = time.time() - start_time
+        minutes = int(elapsed // 60)
+        seconds = int(elapsed % 60)
+
+        print("message", f"{len(uploaded_files)} JSON files uploaded to R2")
+        print("files", "uploaded_files")
+        print("Elapsed time", f"{minutes} minutes {seconds} seconds")
+
+        return {
+            "status": "success",
+            "message": f"{len(uploaded_files)} JSON files uploaded to R2",
+            "files": uploaded_files,
+            "Elapsed time": f"{minutes} minutes {seconds} seconds"
+        }
+
+
+
+@router.post("/insertMany")
+def multiple_store_json(
+    bucket_name: str = Query(..., title="Bucket Name"),
+    bucket_path: str = Query("iceberg_json", description="Folder path in R2 (default: iceberg_json)"),
+    models: List[dict] = Body(..., description="List of JSON models to store in R2"),
+
+):
+    start_time = time.time()
+    # BATCH_SIZE = 1
+    MAX_WORKERS = 20
+
+    try:
+        r2_client = get_r2_client()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to initialize R2 client: {str(e)}")
+
+    uploaded_files = []
+    failed_files = []
+
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {}
+        for model in models:
+            print("serial :", model["serial_no"])
+            # if "serial_no" not in model:
+            #     raise HTTPException(status_code=400, detail="Each model must have a serial_no field")
+
+            serial_no = str(model.get("serial_no", uuid.uuid4()))
+            model["serial_no"] = serial_no  # ensure string
+
+            # Key path
+            r2_key = f"{bucket_path.rstrip('/')}/{serial_no}.json"
+
+            # Metadata
+            # metadata = {
+            #     "author": "Mani",
+            #     "project": "CentralInventory",
+            #     "serial_no": serial_no
+            # }
+
+            # File body
+            body = json.dumps(model, indent=2, cls=CustomJSONEncoder).encode("utf-8")
+
+            # Submit task
+            # futures.append(executor.submit(upload_file, r2_client, bucket_name, r2_key, body, metadata))
+            futures[executor.submit(upload_file, r2_client, bucket_name, r2_key, body)] = r2_key
+
+        # Collect results
+        for future in as_completed(futures):
+            r2_key = futures[future]
+            try:
+                result = future.result()
+                uploaded_files.append(result)
+            except Exception as e:
+                print(f"Upload failed for {r2_key}: {e}")
+                failed_files.append(r2_key)
+
+
+    elapsed = time.time() - start_time
+    minutes = int(elapsed // 60)
+    seconds = int(elapsed % 60)
+
+    return {
+        "status": "success" if not failed_files else "partial",
+        "message": f"{len(uploaded_files)} JSON file(s) uploaded, {len(failed_files)} failed",
+        "files_uploaded": uploaded_files,
+        "files_failed": failed_files,
+        "elapsed_time": f"{minutes} minutes {seconds} seconds"
     }
