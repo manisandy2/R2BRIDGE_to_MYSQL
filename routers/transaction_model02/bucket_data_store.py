@@ -601,7 +601,7 @@ def get_bucket_list(
 import concurrent.futures
 
 # LOCAL_EXCEL_FOLDER = "excel"
-MAX_WORKERS = 30
+# MAX_WORKERS = 30
 
 @router.post("/create")
 async def transaction(
@@ -714,93 +714,84 @@ async def transaction(
         # "excel_file": excel_file_path,
     }
 
-@router.post("/create-pri-id")
-async def transaction(
-    start_range: int = Query(0, description="Start row (e.g. 0)"),
-    end_range: int = Query(100000, description="End row (e.g. 100000)"),
-):
-    if end_range <= start_range:
-        raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
-
-    total_start = time.time()
-    mysql_creds = MysqlCatalog()
-
-    namespace, table_name = "pos_transactions", "transaction"
-    dbname = "Transaction"
-
-    # --- 1️⃣ Fetch MySQL data ---
-    try:
-        mysql_start = time.time()
-        rows = mysql_creds.get_range(dbname, start_range, end_range)
-        mysql_duration = round(time.time() - mysql_start, 2)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
-
-    if not rows:
-        raise HTTPException(status_code=404, detail="No data found in the given range.")
-
-    stored_count, failed_records, error_logs, excel_records = 0, [], [], []
-
-    # --- 2️⃣ Function to process each record ---
-    def process_record(record: dict[str, Any]):
-        pri_id = record.get("pri_id", "unknown")
-        try:
-            record_safe = make_json_serializable(record)
-
-            # ✅ Only 1 path: id-based JSON
-            key = f"{namespace}/{table_name}/id/{pri_id}.json"
-
-            # Load existing data (if file exists in R2)
-            existing = load_r2_json(R2_BUCKET_NAME, key)
-            existing.append(record_safe)
-
-            # Remove duplicates by pri_id and sort
-            merged = {r["pri_id"]: r for r in existing}.values()
-            merged_sorted = sorted(merged, key=lambda x: str(x.get("pri_id", "")))
-            pri_ids = [r.get("pri_id") for r in merged_sorted]
-
-            # Metadata for reference
-            metadata = {
-                "pri_ids": pri_ids,
-                "record_count": len(merged_sorted),
-                "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-            }
-
-            # ✅ Store only one JSON file per pri_id
-            store_json_to_r2(merged_sorted, key, metadata)
-
-            return {"status": "ok", "pri_id": pri_id, "record": record_safe}
-
-        except Exception as e:
-            return {"status": "error", "pri_id": pri_id, "error": str(e)}
-
-    # --- 3️⃣ Run parallel threads ---
-    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        futures = [executor.submit(process_record, r) for r in rows]
-
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result["status"] == "ok":
-                stored_count += 1
-                excel_records.append(result["record"])
-            else:
-                failed_records.append(result["pri_id"])
-                error_logs.append(result)
-
-    elapsed = round(time.time() - total_start, 2)
-
-    # --- 4️⃣ Return summary ---
-    return {
-        "status": "success",
-        "namespace": namespace,
-        "table": table_name,
-        "rows_processed": len(rows),
-        "rows_stored": stored_count,
-        "failed_records": len(failed_records),
-        "mysql_fetch_seconds": mysql_duration,
-        "elapsed_seconds": elapsed,
-        "r2_key_pattern": f"{namespace}/{table_name}/id/<pri_id>.json",
-    }
+# @router.post("/create-pri-id")
+# async def transaction(
+#     start_range: int = Query(0, description="Start row (e.g. 0)"),
+#     end_range: int = Query(100000, description="End row (e.g. 100000)"),
+# ):
+#     if end_range <= start_range:
+#         raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
+#
+#     total_start = time.time()
+#     mysql_creds = MysqlCatalog()
+#
+#     namespace, table_name = "pos_transactions", "transaction"
+#     dbname = "Transaction"
+#
+#     try:
+#         mysql_start = time.time()
+#         rows = mysql_creds.get_range(dbname, start_range, end_range)
+#         mysql_duration = round(time.time() - mysql_start, 2)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     if not rows:
+#         raise HTTPException(status_code=404, detail="No data found in the given range.")
+#
+#     stored_count, failed_records, error_logs, excel_records = 0, [], [], []
+#
+#
+#     def process_record(record: dict[str, Any]):
+#         pri_id = record.get("pri_id", "unknown")
+#         try:
+#             record_safe = make_json_serializable(record)
+#
+#             # Only 1 path: id-based JSON
+#             key = f"id/{pri_id}.json"
+#
+#             # Load existing data (if file exists in R2)
+#             existing = load_r2_json(R2_BUCKET_NAME, key)
+#             existing.append(record_safe)
+#
+#
+#             # Metadata for reference
+#             metadata = {
+#                 "pri_ids": pri_id,
+#                 "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+#             }
+#
+#             # Store only one JSON file per pri_id
+#             store_json_to_r2(existing, key, metadata)
+#
+#             return {"status": "ok", "pri_id": pri_id, "record": record_safe}
+#
+#         except Exception as e:
+#             return {"status": "error", "pri_id": pri_id, "error": str(e)}
+#
+#     # --- Run parallel threads ---
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+#         futures = [executor.submit(process_record, r) for r in rows]
+#
+#         for future in concurrent.futures.as_completed(futures):
+#             result = future.result()
+#             if result["status"] == "ok":
+#                 stored_count += 1
+#                 excel_records.append(result["record"])
+#             else:
+#                 failed_records.append(result["pri_id"])
+#                 error_logs.append(result)
+#
+#     elapsed = round(time.time() - total_start, 2)
+#
+#     # ---  Return summary ---
+#     return {
+#         "status": "success",
+#         "rows_processed": len(rows),
+#         "rows_stored": stored_count,
+#         "failed_records": len(failed_records),
+#         "elapsed_seconds": elapsed,
+#         "r2_key_pattern": f"id/<pri_id>.json",
+#     }
 
 ##############################################################################
 
@@ -1096,3 +1087,284 @@ def delete_files(
 
     except Exception as e:
         return {"error": str(e)}
+
+
+# @router.post("/create-pri-id")
+# async def create_pri_id_records(
+#     start_range: int = Query(0, description="Start row (e.g., 0)"),
+#     end_range: int = Query(100000, description="End row (e.g., 100000)")
+# ):
+#
+#     if end_range <= start_range:
+#         raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
+#
+#     total_start = time.time()
+#     mysql_creds = MysqlCatalog()
+#
+#     namespace, table_name = "pos_transactions", "transaction"
+#     dbname = "Transaction"
+#
+#     # --- Step 1: Fetch records from MySQL ---
+#     try:
+#         mysql_start = time.time()
+#         rows = mysql_creds.get_range(dbname, start_range, end_range)
+#         mysql_duration = round(time.time() - mysql_start, 2)
+#         if not rows:
+#             raise HTTPException(status_code=404, detail="No data found in the given range.")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     stored_count = 0
+#     failed_records = []
+#     error_logs = []
+#     excel_records = []
+#
+#     # --- Step 2: Define record processor ---
+#     def process_record(record: dict[str, Any]):
+#         pri_id = record.get("pri_id")
+#         if not pri_id:
+#             return {"status": "error", "error": "Missing pri_id"}
+#
+#         try:
+#             record_safe = make_json_serializable(record)
+#             key = f"id/{pri_id}.json"
+#
+#             # Load existing JSON data (if any)
+#             existing = load_r2_json(R2_BUCKET_NAME, key)
+#             existing.append(record_safe)
+#
+#             # Metadata tracking
+#             metadata = {
+#                 "pri_id": pri_id,
+#                 "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+#             }
+#
+#             # Store JSON file to R2 (overwriting with updated list)
+#             store_json_to_r2(existing, key, metadata)
+#
+#             return {"status": "ok", "pri_id": pri_id}
+#
+#         except Exception as e:
+#             return {"status": "error", "pri_id": pri_id, "error": str(e)}
+#
+#     # --- Step 3: Parallel processing ---
+#     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+#         for result in executor.map(process_record, rows):
+#             if result["status"] == "ok":
+#                 stored_count += 1
+#                 excel_records.append(result["pri_id"])
+#             else:
+#                 failed_records.append(result.get("pri_id"))
+#                 error_logs.append(result)
+#
+#     total_elapsed = round(time.time() - total_start, 2)
+#
+#     # --- Step 4: Return summary ---
+#     return {
+#         "status": "success",
+#         "mysql_duration_sec": mysql_duration,
+#         "rows_fetched": len(rows),
+#         "rows_stored": stored_count,
+#         "failed_count": len(failed_records),
+#         "elapsed_total_sec": total_elapsed,
+#         "r2_key_pattern": "id/<pri_id>.json",
+#         "errors": error_logs[:5],  # Limit output for readability
+#     }
+from fastapi import APIRouter, HTTPException, Query
+from datetime import datetime
+from typing import Any, List
+import time
+import concurrent.futures
+
+# @router.post("/create-pri-id")
+# async def create_pri_id_records(
+#     start_range: int = Query(0, description="Start row (e.g., 0)"),
+#     end_range: int = Query(100000, description="End row (e.g., 100000)")
+# ):
+#     """
+#     Fetch records from MySQL and upload each record to R2 storage as a JSON file.
+#     Each file is named as 'id/<pri_id>.json'.
+#     """
+#     if end_range <= start_range:
+#         raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
+#
+#     total_start = time.time()
+#     mysql_creds = MysqlCatalog()
+#     namespace, table_name = "pos_transactions", "transaction"
+#     dbname = "Transaction"
+#
+#     # --- Step 1: Fetch records from MySQL ---
+#     try:
+#         mysql_start = time.time()
+#         rows = mysql_creds.get_range(dbname, start_range, end_range)
+#         mysql_duration = round(time.time() - mysql_start, 2)
+#         if not rows:
+#             raise HTTPException(status_code=404, detail="No data found in the given range.")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {e}")
+#
+#     stored_count = 0
+#     failed_records: List[Any] = []
+#     error_logs: List[Any] = []
+#     excel_records: List[Any] = []
+#
+#     # --- Step 2: Optimized record processor ---
+#     def process_record(record: dict[str, Any]):
+#         pri_id = record.get("pri_id")
+#         if not pri_id:
+#             return {"status": "error", "error": "Missing pri_id"}
+#
+#         try:
+#             # Prepare JSON-safe record
+#             record_safe = make_json_serializable(record)
+#             key = f"id/{pri_id}.json"
+#
+#             # Fetch existing data (if any)
+#             existing = load_r2_json(R2_BUCKET_NAME, key)
+#             existing.append(record_safe)
+#
+#             # Add metadata
+#             metadata = {
+#                 "pri_id": pri_id,
+#                 "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+#             }
+#
+#             # Save updated JSON to R2
+#             store_json_to_r2(existing, key, metadata)
+#             return {"status": "ok", "pri_id": pri_id}
+#
+#         except Exception as e:
+#             return {"status": "error", "pri_id": pri_id, "error": str(e)}
+#
+#     # --- Step 3: Parallel processing with batch partitioning ---
+#     # Reduces overhead by processing in manageable chunks
+#     def process_in_batches(data, batch_size=1000):
+#         for i in range(0, len(data), batch_size):
+#             yield data[i:i + batch_size]
+#
+#     for batch in process_in_batches(rows):
+#         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+#             results = list(executor.map(process_record, batch))
+#
+#         for result in results:
+#             if result["status"] == "ok":
+#                 stored_count += 1
+#                 excel_records.append(result["pri_id"])
+#             else:
+#                 failed_records.append(result.get("pri_id"))
+#                 error_logs.append(result)
+#
+#     total_elapsed = round(time.time() - total_start, 2)
+#
+#     # --- Step 4: Return summary ---
+#     return {
+#         "status": "success",
+#         "mysql_duration_sec": mysql_duration,
+#         "rows_fetched": len(rows),
+#         "rows_stored": stored_count,
+#         "failed_count": len(failed_records),
+#         "elapsed_total_sec": total_elapsed,
+#         "r2_key_pattern": "id/<pri_id>.json",
+#         "errors": error_logs[:5],
+#     }
+
+MAX_WORKERS = 16
+import concurrent.futures
+import math
+BATCH_SIZE = 1000
+
+@router.post("/create-pri-id")
+async def create_pri_id_records(
+    start_range: int = Query(0, description="Start row (e.g., 0)"),
+    end_range: int = Query(100000, description="End row (e.g., 100000)")
+):
+    """
+    Fetch records from MySQL and upload each as JSON to R2.
+    Includes batch-based parallelism and detailed time logs.
+    """
+
+    if end_range <= start_range:
+        raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
+
+    total_start = time.time()
+    mysql_creds = MysqlCatalog()
+    dbname = "Transaction"
+
+    # --- Step 1: Fetch from MySQL ---
+    try:
+        mysql_start = time.time()
+        rows = mysql_creds.get_range(dbname, start_range, end_range)
+        mysql_duration = round(time.time() - mysql_start, 2)
+        if not rows:
+            raise HTTPException(status_code=404, detail="No data found in the given range.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"MySQL fetch error: {e}")
+
+    stored_count, failed_count = 0, 0
+    error_logs: List[Any] = []
+
+    # --- Helper: Single record handler ---
+    def process_record(record: dict[str, Any]):
+        pri_id = record.get("pri_id")
+        if not pri_id:
+            return {"status": "error", "error": "Missing pri_id"}
+
+        try:
+            record_safe = make_json_serializable(record)
+            key = f"id/{pri_id}.json"
+
+            # Load existing once; append and write back
+            # existing = load_r2_json(R2_BUCKET_NAME, key)
+            # existing.append(record_safe)
+
+            metadata = {
+                "pri_id": pri_id,
+                "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+            }
+            store_json_to_r2([record_safe], key, metadata)
+            return {"status": "ok"}
+
+        except Exception as e:
+            return {"status": "error", "error": str(e)}
+
+    # --- Step 2: Batch Processing ---
+    total_rows = len(rows)
+    num_batches = math.ceil(total_rows / BATCH_SIZE)
+
+    for batch_index in range(num_batches):
+        batch_start_idx = batch_index * BATCH_SIZE
+        batch_end_idx = min(batch_start_idx + BATCH_SIZE, total_rows)
+        batch_data = rows[batch_start_idx:batch_end_idx]
+
+        print(f"🟡 Processing Batch {batch_index + 1}/{num_batches} → Rows {batch_start_idx}–{batch_end_idx}")
+
+        batch_start_time = time.time()
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            results = list(executor.map(process_record, batch_data))
+
+        batch_duration = round(time.time() - batch_start_time, 2)
+
+        # Collect stats
+        ok = sum(1 for r in results if r["status"] == "ok")
+        err = len(results) - ok
+        stored_count += ok
+        failed_count += err
+        error_logs.extend(r for r in results if r["status"] == "error")
+
+        print(f"✅ Batch {batch_index + 1} Completed in {batch_duration}s ({ok} ok / {err} failed)")
+
+    total_elapsed = round(time.time() - total_start, 2)
+
+    # --- Step 3: Summary ---
+    return {
+        "status": "success",
+        "mysql_duration_sec": mysql_duration,
+        "rows_fetched": total_rows,
+        "rows_stored": stored_count,
+        "failed_count": failed_count,
+        "elapsed_total_sec": total_elapsed,
+        "batches": num_batches,
+        "r2_key_pattern": "id/<pri_id>.json",
+        "errors": error_logs[:5],
+    }

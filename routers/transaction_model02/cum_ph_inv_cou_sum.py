@@ -390,6 +390,7 @@ def create_transaction_phone_table():
     # --- Step 2: Infer Iceberg schema from MySQL data ---
     try:
         iceberg_schema, _ = infer_schema_from_record(rows[0])
+        
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Schema inference failed: {str(e)}")
 
@@ -411,8 +412,8 @@ def create_transaction_phone_table():
                 PartitionField(
                     source_id=iceberg_schema.find_field("Bill_Date__c").field_id,
                     field_id=2001,
-                    transform=IdentityTransform(),
-                    name="Bill_Date__c",
+                    transform=DayTransform(),
+                    name="Day",
                 ),
                 PartitionField(
                     source_id=iceberg_schema.find_field("store_code__c").field_id,
@@ -981,7 +982,7 @@ def insert_transaction_phone_data(
     fetch_start = time.time()
     try:
         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
-        print(rows)
+        # print(rows)
         if not rows:
             raise HTTPException(status_code=400, detail="No data found in range.")
         log_info(f"MySQL Fetch: Retrieved {len(rows)} rows.")
@@ -1512,3 +1513,60 @@ def crm_r2(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"R2 CRM query failed: {str(e)}")
+
+@router.put("/update-partition")
+def update_partition_spec():
+    namespace, table_name = "pos_transactions01", "transaction_phone_in_con_sum"
+
+    try:
+        catalog = get_catalog_client()
+        table = catalog.load_table(f"{namespace}.{table_name}")
+    except NoSuchTableError:
+        raise HTTPException(status_code=404, detail=f"Table {namespace}.{table_name} not found")
+
+    iceberg_schema = table.schema()
+    print(iceberg_schema)
+
+    # --- ✅ Updated Partition Spec ---
+    new_partition_spec = PartitionSpec(
+        fields=[
+            PartitionField(
+                source_id=iceberg_schema.find_field("Bill_Date__c").field_id,
+                field_id=2001,
+                transform=DayTransform(),  # <-- ✅ Partition by Day
+                name="Bill_Date__c",
+            ),
+            PartitionField(
+                source_id=iceberg_schema.find_field("store_code__c").field_id,
+                field_id=2002,
+                transform=BucketTransform(32),
+                name="store_code__c",
+            ),
+            PartitionField(
+                source_id=iceberg_schema.find_field("customer_mobile__c").field_id,
+                field_id=2003,
+                transform=BucketTransform(32),
+                name="customer_mobile__c",
+            ),
+        ]
+    )
+
+    try:
+        # --- Update Table Partition Spec ---
+        table.update_spec(new_partition_spec)
+        table.commit()
+
+        return {
+            "status": "success",
+            "message": f"Partition spec updated for {namespace}.{table_name}",
+            "new_partition_spec": [
+                {
+                    "name": f.name,
+                    "transform": type(f.transform).__name__
+                }
+                for f in new_partition_spec.fields
+            ],
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Partition update failed: {str(e)}")
