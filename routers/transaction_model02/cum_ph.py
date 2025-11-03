@@ -8,7 +8,7 @@ from pyiceberg.types import *
 from pyiceberg.partitioning import PartitionSpec
 from pyiceberg.catalog import load_catalog
 from pyiceberg.partitioning import PartitionSpec, PartitionField
-from pyiceberg.transforms import IdentityTransform,YearTransform,MonthTransform,DayTransform,BucketTransform
+from pyiceberg.transforms import IdentityTransform,YearTransform,MonthTransform,DayTransform,BucketTransform,VoidTransform
 from pyiceberg.catalog import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError,NoSuchTableError
 from ...core.catalog_client import get_catalog_client
 import traceback
@@ -338,6 +338,7 @@ def infer_schema_from_record(record: dict):
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
 
+# type Change
 ##########################################################################
 @router.post("/manual-create-ph-table")
 def create_transaction():
@@ -431,6 +432,101 @@ def create_transaction():
         return {"status": "exists", "table": table_identifier}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
+
+
+# ##########################################################################
+# @router.post("/manual-create-ph-table")
+# def create_transaction():
+#     """
+#     Create a predefined Iceberg table for transaction phone data
+#     with a static schema and partition spec.
+#     """
+#     namespace = "pos_transactions01"
+#     table_name = "transaction01"
+#     table_identifier = f"{namespace}.{table_name}"
+#
+#     # Step 1: Define Iceberg schema
+#     transaction_schema = Schema(
+#         NestedField(1,"pri_id",LongType(),required=True),
+#         NestedField(2, "store_code__c", StringType()),
+#         NestedField(3, "Branch_Name__c", StringType()),
+#         NestedField(4, "customer_mobile__c", StringType()),
+#         NestedField(5, "Customer_Name__c", StringType()),
+#         NestedField(6, "Bill_No__c", StringType()),
+#         NestedField(7, "Bill_Date__c", StringType()),
+#         NestedField(8, "Invoice_Date__c", StringType()),
+#         NestedField(9, "Invoice_Amount__c", DoubleType()),
+#         NestedField(10, "bill_status__c", StringType()),
+#         NestedField(11, "bill_transaction_no__c", StringType()),
+#         NestedField(12, "Item_Code__c", StringType()),
+#         NestedField(13, "Item_Name__c", StringType()),
+#         NestedField(14, "bill_tax__c", StringType()),
+#         NestedField(15, "bill_grand_total__c", StringType()),
+#         NestedField(16, "CreatedDate", StringType()),
+#     )
+#
+#
+#
+#     # Step 2: Define partition spec
+#     transaction_partition_spec = PartitionSpec(
+#         PartitionField(
+#             source_id=transaction_schema.find_field("Bill_Date__c").field_id,
+#             field_id=2001,
+#             transform=DayTransform(),
+#             name="day",
+#         ),
+#
+#         PartitionField(
+#             source_id=transaction_schema.find_field("store_code__c").field_id,
+#             field_id=2002,
+#             transform=BucketTransform(32),
+#             name="store_bucket",
+#         ),
+#         PartitionField(
+#             source_id=transaction_schema.find_field("customer_mobile__c").field_id,
+#             field_id=2004,
+#             transform=IdentityTransform(),
+#             name="customer_mobile",
+#         ),
+#     )
+#
+#     # Step 3: Connect to catalog
+#     catalog = get_catalog_client()
+#
+#     # Step 4: Ensure namespace exists
+#     try:
+#         catalog.load_namespace_properties(namespace)
+#     except NoSuchNamespaceError:
+#         catalog.create_namespace(namespace)
+#     except NamespaceAlreadyExistsError:
+#         pass
+#
+#     # Step 5: Create table
+#     try:
+#         tbl = catalog.create_table(
+#             identifier=table_identifier,
+#             schema=transaction_schema,
+#             partition_spec=transaction_partition_spec,
+#             properties={
+#                 "write.format.default": "parquet",
+#                 "write.parquet.compression-codec": "zstd",
+#                 "write.partition.path-style": "directory",
+#             },
+#         )
+#         print(f"✅ Created Iceberg table: {table_identifier}")
+#
+#         # Step 6: Return confirmation
+#         return {
+#             "status": "created",
+#             "table": table_identifier,
+#             "schema_fields": [f.name for f in transaction_schema.fields],
+#             "partitions": [f.name for f in transaction_partition_spec.fields],
+#         }
+#
+#     except TableAlreadyExistsError:
+#         return {"status": "exists", "table": table_identifier}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
 
 
 DUCKDB_PATH = "data/pos_transactions.duckdb"  # You can customize the DB path
