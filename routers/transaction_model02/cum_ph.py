@@ -1149,42 +1149,135 @@ def process_chunk(chunk, arrow_schema, chunk_idx=1):
 #
 #     return pa.Table.from_pylist(processed_rows, schema=arrow_schema)
 
+# @router.post("/insert-ph-direct-data")
+# def insert_transaction_phone_data(
+#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
+#     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
+#     chunk_size: int = Query(10000, description="Chunk size for multithreading")
+# ):
+#     total_start = time.time()
+#     namespace, table_name = "pos_transactions01", "transaction01"
+#     # namespace, table_name = "pos_transactions01", "transaction_with_in"
+#     # namespace, table_name = "pos_transactions01", "transaction_with_out"
+#     dbname = "Transaction"
+#     mysql_creds = MysqlCatalog()
+#
+#     # Step 1: Fetch from MySQL
+#     mysql_start = time.time()
+#     try:
+#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
+#         mysql_end = time.time()
+#         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec with {len(rows)} rows.")
+#         if not rows:
+#             raise HTTPException(status_code=400, detail="No data found in the given range.")
+#         # print(f"Sample MySQL Row: {rows[0]}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     # Step 2: Infer Schema
+#     schema_start = time.time()
+#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
+#     schema_end = time.time()
+#     print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
+#
+#     # Step 3: Convert rows → Arrow tables using multithreading
+#     arrow_start = time.time()
+#     chunks = [rows[i:i + chunk_size] for i in range(0, len(rows), chunk_size)]
+#     arrow_tables = []
+#     with ThreadPoolExecutor(max_workers=10) as executor:
+#         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
+#         for future in as_completed(futures):
+#             idx = futures[future]
+#             try:
+#                 tbl = future.result()
+#                 arrow_tables.append(tbl)
+#                 print(f"Chunk {idx+1}/{len(chunks)} processed with {tbl.num_rows} rows")
+#             except Exception as e:
+#                 print(f"Chunk {idx+1} failed: {e}")
+#                 # print(f"Chunk {chunks} failed: {e}")
+#                 # print(f"Chunk {chunks[idx]} failed: {e}")
+#                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
+#     arrow_end = time.time()
+#     print(f"All chunks converted to Arrow tables in {arrow_end - arrow_start:.2f} sec")
+#
+#     # Combine all Arrow tables into one
+#     combined_table = pa.concat_tables(arrow_tables)
+#     print(f"Combined Arrow table rows: {combined_table.num_rows}")
+#
+#     # Step 4: Load Iceberg Table from Catalog
+#     catalog_start = time.time()
+#     catalog = get_catalog_client()
+#     table_identifier = f"{namespace}.{table_name}"
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#         catalog_end = time.time()
+#         print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+#
+#     # Step 5: Append data
+#     append_start = time.time()
+#     try:
+#         # tbl.append(combined_table)
+#         tbl.upsert(combined_table)
+#         tbl.refresh()
+#         append_end = time.time()
+#         print(f"Data append + refresh completed in {append_end - append_start:.2f} sec")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
+#
+#     total_end = time.time()
+#     print(f"Total execution time: {total_end - total_start:.2f} sec")
+#
+#     return {
+#         "success": True,
+#         "message": "Data appended successfully with multithreading",
+#         "rows_fetched": len(rows),
+#         "chunks": len(chunks),
+#         "execution_times": {
+#             "mysql_fetch": round(mysql_end - mysql_start, 2),
+#             "schema_infer": round(schema_end - schema_start, 2),
+#             "arrow_convert": round(arrow_end - arrow_start, 2),
+#             "catalog_load": round(catalog_end - catalog_start, 2),
+#             "append_refresh": round(append_end - append_start, 2),
+#             "total_time": round(total_end - total_start, 2)
+#         }
+#     }
+
+
 @router.post("/insert-ph-direct-data")
 def insert_transaction_phone_data(
-    start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
-    end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
-    chunk_size: int = Query(10000, description="Chunk size for multithreading")
+    start_range: int = Query(0),
+    end_range: int = Query(100000),
+    chunk_size: int = Query(10000),
+    max_workers: int = Query(8)
 ):
+    import traceback
     total_start = time.time()
     namespace, table_name = "pos_transactions01", "transaction01"
-    # namespace, table_name = "pos_transactions01", "transaction_with_in"
-    # namespace, table_name = "pos_transactions01", "transaction_with_out"
     dbname = "Transaction"
     mysql_creds = MysqlCatalog()
 
-    # Step 1: Fetch from MySQL
-    mysql_start = time.time()
     try:
+        mysql_start = time.time()
         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
         mysql_end = time.time()
-        print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec with {len(rows)} rows.")
         if not rows:
             raise HTTPException(status_code=400, detail="No data found in the given range.")
-        # print(f"Sample MySQL Row: {rows[0]}")
+        print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f}s with {len(rows)} rows.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
 
-    # Step 2: Infer Schema
     schema_start = time.time()
     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
     schema_end = time.time()
-    print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
+    print(f"Schema inference completed in {schema_end - schema_start:.2f}s")
 
-    # Step 3: Convert rows → Arrow tables using multithreading
     arrow_start = time.time()
     chunks = [rows[i:i + chunk_size] for i in range(0, len(rows), chunk_size)]
     arrow_tables = []
-    with ThreadPoolExecutor(max_workers=10) as executor:
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
         for future in as_completed(futures):
             idx = futures[future]
@@ -1193,40 +1286,44 @@ def insert_transaction_phone_data(
                 arrow_tables.append(tbl)
                 print(f"Chunk {idx+1}/{len(chunks)} processed with {tbl.num_rows} rows")
             except Exception as e:
-                print(f"Chunk {idx+1} failed: {e}")
-                # print(f"Chunk {chunks} failed: {e}")
-                # print(f"Chunk {chunks[idx]} failed: {e}")
-                raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
+                print(f"Chunk {idx+1} failed:\n{traceback.format_exc()}")
+                raise HTTPException(status_code=500, detail=f"Chunk {idx+1} failed: {e}")
     arrow_end = time.time()
-    print(f"All chunks converted to Arrow tables in {arrow_end - arrow_start:.2f} sec")
 
-    # Combine all Arrow tables into one
-    combined_table = pa.concat_tables(arrow_tables)
-    print(f"Combined Arrow table rows: {combined_table.num_rows}")
+    print(f"Arrow conversion finished in {arrow_end - arrow_start:.2f}s for {len(arrow_tables)} chunks")
 
-    # Step 4: Load Iceberg Table from Catalog
     catalog_start = time.time()
     catalog = get_catalog_client()
     table_identifier = f"{namespace}.{table_name}"
     try:
         tbl = catalog.load_table(table_identifier)
         catalog_end = time.time()
-        print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
+        print(f"Catalog load completed in {catalog_end - catalog_start:.2f}s")
     except NoSuchTableError:
         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
 
-    # Step 5: Append data
     append_start = time.time()
     try:
-        tbl.append(combined_table)
+        for chunk_tbl in arrow_tables:
+            tbl.upsert(chunk_tbl)
         tbl.refresh()
         append_end = time.time()
-        print(f"Data append + refresh completed in {append_end - append_start:.2f} sec")
+        print(f"Append & refresh completed in {append_end - append_start:.2f}s")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
 
     total_end = time.time()
-    print(f"Total execution time: {total_end - total_start:.2f} sec")
+
+    print(f"""
+======== Performance Summary ========
+MySQL Fetch     : {mysql_end - mysql_start:.2f}s
+Schema Inference: {schema_end - schema_start:.2f}s
+Arrow Convert   : {arrow_end - arrow_start:.2f}s
+Catalog Load    : {catalog_end - catalog_start:.2f}s
+Append & Refresh: {append_end - append_start:.2f}s
+Total           : {total_end - total_start:.2f}s
+=====================================
+""")
 
     return {
         "success": True,
@@ -1241,4 +1338,80 @@ def insert_transaction_phone_data(
             "append_refresh": round(append_end - append_start, 2),
             "total_time": round(total_end - total_start, 2)
         }
+    }
+
+@router.get("/inspect-ph-table")
+def inspect_transaction_table(
+    namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
+    table_name: str = Query("transaction01", description="Iceberg table name"),
+    bill_date: str | None = Query(None, description="Filter by Bill_Date__c (YYYY-MM-DD)"),
+    store_code: str | None = Query(None, description="Filter by store_code__c"),
+    customer_mobile: str | None = Query(None, description="Filter by customer_mobile__c")
+):
+    """
+    Inspect an existing Iceberg table's metadata.
+    Optionally filter by partition values (bill_date, store_code, customer_mobile).
+    """
+    import datetime
+    import pyarrow as pa
+
+    table_identifier = f"{namespace}.{table_name}"
+    catalog = get_catalog_client()
+
+    try:
+        tbl = catalog.load_table(table_identifier)
+    except NoSuchTableError:
+        raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading table: {str(e)}")
+
+    # Build filter expressions dynamically
+    filter_expr = None
+    if bill_date:
+        try:
+            bill_date_parsed = datetime.datetime.strptime(bill_date, "%Y-%m-%d")
+            expr = (tbl.col("Bill_Date__c") == pa.scalar(bill_date_parsed))
+            filter_expr = expr if filter_expr is None else (filter_expr & expr)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+    if store_code:
+        expr = (tbl.col("store_code__c") == pa.scalar(store_code))
+        filter_expr = expr if filter_expr is None else (filter_expr & expr)
+    if customer_mobile:
+        expr = (tbl.col("customer_mobile__c") == pa.scalar(int(customer_mobile)))
+        filter_expr = expr if filter_expr is None else (filter_expr & expr)
+
+    # Read data or metadata with filter
+    try:
+        if filter_expr:
+            scan = tbl.scan(filter=filter_expr)
+        else:
+            scan = tbl.scan()
+
+        # Collect summary information
+        files_info = []
+        for f in scan.plan_files():
+            files_info.append({
+                "file_path": f.file_path,
+                "record_count": f.record_count,
+                "file_size_in_bytes": f.file_size_in_bytes,
+                "partition": f.partition,
+            })
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error scanning table: {str(e)}")
+
+    # Basic metadata summary
+    metadata_summary = {
+        "namespace": namespace,
+        "table_name": table_name,
+        "schema_fields": [f.name for f in tbl.schema().fields],
+        "partition_fields": [f.name for f in tbl.spec().fields],
+        "total_data_files": len(files_info),
+        "filtered": bool(filter_expr),
+    }
+
+    return {
+        "summary": metadata_summary,
+        "files": files_info[:50]  # limit to 50 results for readability
     }

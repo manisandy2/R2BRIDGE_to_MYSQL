@@ -4,6 +4,7 @@ from pyiceberg.catalog import load_catalog
 from pyiceberg.schema import Schema, NestedField
 from pyiceberg.types import StringType, LongType, DateType,TimestampType
 import time, json, boto3, os
+import io
 from botocore.client import Config
 import logging
 import time
@@ -491,7 +492,7 @@ def list_r2_objects(prefix: str):
 
 @router.get("/list")
 def get_bucket_list(
-    bucket_name: str = Query(..., title="Bucket Name",description="Bucket name (default:dev-transaction)"),
+    bucket_name: str = Query("dev-transaction", title="Bucket Name",description="Bucket name (default: dev-transaction)"),
     bucket_path: str = Query("pos_transactions", description="Folder path in R2 (default: pos_transactions)"),
 
 ):
@@ -514,6 +515,119 @@ def get_bucket_list(
     except Exception as e:
         return {"error": str(e)}
 
+# LOCAL_EXCEL_FOLDER = "excel"
+# @router.post("/create")
+# async def transaction(
+#     start_range: int = Query(0, description="Start row (e.g. 0)"),
+#     end_range: int = Query(100000, description="End row (e.g. 100000)"),
+# ):
+#     if end_range <= start_range:
+#         raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
+#
+#     os.makedirs(LOCAL_EXCEL_FOLDER, exist_ok=True)
+#     total_start = time.time()
+#     mysql_creds = MysqlCatalog()
+#
+#     namespace, table_name = "pos_transactions", "transaction"
+#     dbname = "Transaction"
+#
+#     # 1 Fetch data
+#     try:
+#         mysql_start = time.time()
+#         rows = mysql_creds.get_range(dbname, start_range, end_range)
+#         mysql_duration = round(time.time() - mysql_start, 2)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     if not rows:
+#         raise HTTPException(status_code=404, detail="No data found in the given range.")
+#
+#     # stored_count, failed_records = 0, []
+#     # excel_records = []
+#     stored_count, failed_records, error_logs, excel_records = 0, [], [], []
+#
+#     # 2️⃣ Process each record
+#     for record in rows:
+#         pri_id = record.get("pri_id", "unknown")
+#         try:
+#             record_safe = make_json_serializable(record)
+#             customer_mobile = record.get("customer_mobile__c", "unknown")
+#             # pri_id = record.get("pri_id")
+#             bill_date_str = record.get("Bill_Date__c")
+#
+#             if bill_date_str:
+#                 dt = safe_parse_date(bill_date_str)
+#                 year, month = str(dt.year), str(dt.month).zfill(2)
+#             else:
+#                 year, month = "unknown", "unknown"
+#
+#             # 3️⃣ Multiple R2 keys
+#             r2_keys = [
+#                 f"{namespace}/{table_name}/id/{pri_id}.json",
+#                 f"{namespace}/{table_name}/phone/{year}/{month}/{customer_mobile}.json",
+#                 f"{namespace}/{table_name}/phone_year_month/{customer_mobile}/{year}/{month}/{pri_id}.json"
+#             ]
+#
+#             for key in r2_keys:
+#                 # --- Load existing data ---
+#                 existing = load_r2_json(R2_BUCKET_NAME, key)
+#                 existing.append(record_safe)
+#
+#                 # --- Deduplicate and sort by pri_id ---
+#                 merged = {r["pri_id"]: r for r in existing}.values()
+#                 merged_sorted = sorted(merged, key=lambda x: str(x.get("pri_id", "")))
+#                 pri_ids = [r.get("pri_id") for r in merged_sorted]
+#                 # --- Metadata ---
+#                 metadata = {
+#                     "pri_id": pri_ids,
+#                     "Bill_Date": record.get("Bill_Date__c"),
+#                     "customer_mobile": customer_mobile,
+#                     "record_count": len(merged_sorted),
+#                     "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+#                 }
+#                 # --- Save to R2 ---
+#                 store_json_to_r2(merged_sorted, key, metadata)
+#
+#             stored_count += 1
+#             excel_records.append(record_safe)
+#
+#         except Exception as e:
+#             failed_records.append(pri_id)
+#             error_logs.append({"pri_id": pri_id, "error": str(e)})
+#             print(f"❌ Error saving pri_id={pri_id}: {e}")
+#             continue
+#
+#     # excel_file_name = f"rows_{start_range}_{end_range}.xlsx"
+#     excel_file_path = None
+#     if excel_records:
+#         try:
+#             excel_file_name = f"rows_{start_range}_{end_range}.xlsx"
+#             excel_file_path = os.path.join(LOCAL_EXCEL_FOLDER, excel_file_name)
+#             pd.DataFrame(excel_records).to_excel(excel_file_path, index=False, engine="openpyxl")
+#             print(f"✅ Excel saved locally: {excel_file_path}")
+#         except Exception as e:
+#             print(f"❌ Failed to save Excel: {e}")
+#             excel_file_path = None
+#
+#     elapsed = round(time.time() - total_start, 2)
+#
+#     return {
+#         "status": "success",
+#         "namespace": namespace,
+#         "table": table_name,
+#         "rows_processed": len(rows),
+#         "rows_stored": stored_count,
+#         "failed_records": len(failed_records),
+#         "mysql_fetch_seconds": mysql_duration,
+#         "elapsed_seconds": elapsed,
+#     }
+
+# multi threading
+import concurrent.futures
+
+# LOCAL_EXCEL_FOLDER = "excel"
+MAX_WORKERS = 10
+
 @router.post("/create")
 async def transaction(
     start_range: int = Query(0, description="Start row (e.g. 0)"),
@@ -522,13 +636,14 @@ async def transaction(
     if end_range <= start_range:
         raise HTTPException(status_code=400, detail="end_range must be greater than start_range")
 
+    # os.makedirs(LOCAL_EXCEL_FOLDER, exist_ok=True)
     total_start = time.time()
     mysql_creds = MysqlCatalog()
 
     namespace, table_name = "pos_transactions", "transaction"
     dbname = "Transaction"
 
-    # 1️⃣ Fetch data
+    # --- 1️⃣ Fetch MySQL data ---
     try:
         mysql_start = time.time()
         rows = mysql_creds.get_range(dbname, start_range, end_range)
@@ -539,14 +654,14 @@ async def transaction(
     if not rows:
         raise HTTPException(status_code=404, detail="No data found in the given range.")
 
-    stored_count, failed_records = 0, []
+    stored_count, failed_records, error_logs, excel_records = 0, [], [], []
 
-    # 2️⃣ Process each record
-    for record in rows:
+    # --- 2️⃣ Function to process each record ---
+    def process_record(record: dict[str, Any]):
+        pri_id = record.get("pri_id", "unknown")
         try:
             record_safe = make_json_serializable(record)
             customer_mobile = record.get("customer_mobile__c", "unknown")
-            pri_id = record.get("pri_id")
             bill_date_str = record.get("Bill_Date__c")
 
             if bill_date_str:
@@ -555,43 +670,63 @@ async def transaction(
             else:
                 year, month = "unknown", "unknown"
 
-            # 3️⃣ Multiple R2 keys
             r2_keys = [
                 f"{namespace}/{table_name}/id/{pri_id}.json",
                 f"{namespace}/{table_name}/phone/{year}/{month}/{customer_mobile}.json",
-                f"{namespace}/{table_name}/phone_year_month/{customer_mobile}/{year}/{month}/{pri_id}.json"
+                f"{namespace}/{table_name}/phone_year_month/{customer_mobile}/{year}/{month}/{pri_id}.json",
             ]
 
             for key in r2_keys:
-                # --- Load existing data ---
                 existing = load_r2_json(R2_BUCKET_NAME, key)
                 existing.append(record_safe)
 
-                # --- Deduplicate and sort by pri_id ---
                 merged = {r["pri_id"]: r for r in existing}.values()
                 merged_sorted = sorted(merged, key=lambda x: str(x.get("pri_id", "")))
                 pri_ids = [r.get("pri_id") for r in merged_sorted]
-                # --- Metadata ---
+
                 metadata = {
                     "pri_id": pri_ids,
-
                     "Bill_Date": record.get("Bill_Date__c"),
                     "customer_mobile": customer_mobile,
                     "record_count": len(merged_sorted),
                     "last_updated": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
                 }
-                # --- Save to R2 ---
+
                 store_json_to_r2(merged_sorted, key, metadata)
 
-            stored_count += 1
+            return {"status": "ok", "pri_id": pri_id, "record": record_safe}
 
         except Exception as e:
-            print(f"❌ Error saving pri_id={record.get('pri_id')}: {e}")
-            failed_records.append(record.get("pri_id"))
-            continue
+            return {"status": "error", "pri_id": pri_id, "error": str(e)}
+
+    # --- 3️⃣ Run in parallel threads ---
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = [executor.submit(process_record, r) for r in rows]
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result["status"] == "ok":
+                stored_count += 1
+                excel_records.append(result["record"])
+            else:
+                failed_records.append(result["pri_id"])
+                error_logs.append(result)
+
+    # --- 4️⃣ Save Excel output ---
+    # excel_file_path = None
+    # if excel_records:
+    #     try:
+    #         excel_file_name = f"rows_{start_range}_{end_range}.xlsx"
+    #         excel_file_path = os.path.join(LOCAL_EXCEL_FOLDER, excel_file_name)
+    #         pd.DataFrame(excel_records).to_excel(excel_file_path, index=False, engine="openpyxl")
+    #         print(f"✅ Excel saved locally: {excel_file_path}")
+    #     except Exception as e:
+    #         print(f"❌ Failed to save Excel: {e}")
+    #         excel_file_path = None
 
     elapsed = round(time.time() - total_start, 2)
 
+    # --- 5️⃣ Return summary ---
     return {
         "status": "success",
         "namespace": namespace,
@@ -601,6 +736,7 @@ async def transaction(
         "failed_records": len(failed_records),
         "mysql_fetch_seconds": mysql_duration,
         "elapsed_seconds": elapsed,
+        # "excel_file": excel_file_path,
     }
 
 ##############################################################################

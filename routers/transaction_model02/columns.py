@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter,Query,HTTPException
-from ..core.catalog_client import get_catalog_client
+from ...core.catalog_client import get_catalog_client
 from pydantic import BaseModel
 from pyiceberg.types import (
     IntegerType,
