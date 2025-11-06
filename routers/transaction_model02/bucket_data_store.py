@@ -1368,3 +1368,21 @@ async def create_pri_id_records(
         "r2_key_pattern": "id/<pri_id>.json",
         "errors": error_logs[:5],
     }
+
+@router.get("/multipart_upload")
+def list_multipart_uploads(bucket_name: str):
+    resp = s3.list_multipart_uploads(Bucket=bucket_name)
+    uploads = resp.get('Uploads', [])
+    print("FOUND:", len(uploads))
+
+    for u in uploads:
+        key = u['Key']
+        upload_id = u['UploadId']
+        print("ABORT:", key, upload_id)
+        s3.abort_multipart_upload(
+            Bucket=bucket_name,
+            Key=key,
+            UploadId=upload_id
+        )
+
+    print("DONE")

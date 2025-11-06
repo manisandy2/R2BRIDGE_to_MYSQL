@@ -94,10 +94,10 @@ from datetime import datetime
 # API_URL = "http://127.0.0.1:8000/insert-ph-data"  # FastAPI endpoint
 API_URL = "http://127.0.0.1:8000/insert-ph-direct-data"  # FastAPI endpoint
 # BATCH_SIZE = 1
-BATCH_SIZE = 1000
+BATCH_SIZE = 100000
 # BATCH_SIZE = 10
 # TOTAL_ROWS = 100000
-TOTAL_ROWS = 4000000
+TOTAL_ROWS = 100000
 # TOTAL_ROWS = 400000
 MAX_RETRIES = 3
 SLEEP_BETWEEN_BATCHES = 2

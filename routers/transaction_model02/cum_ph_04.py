@@ -5,6 +5,9 @@ from fastapi.encoders import jsonable_encoder
 from ...mysql_creds import *
 from pyiceberg.schema import Schema
 from pyiceberg.types import *
+from botocore.client import Config
+import botocore
+import boto3
 from pyiceberg.partitioning import PartitionSpec
 from pyiceberg.catalog import load_catalog
 from pyiceberg.partitioning import PartitionSpec, PartitionField
@@ -25,7 +28,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 LOGS_FOLDER = "logs/iceberg_upload"
 os.makedirs(LOGS_FOLDER, exist_ok=True)
 
-router = APIRouter(prefix="", tags=["Transaction version01"])
+router = APIRouter(prefix="", tags=["Transaction version 01"])
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url=os.getenv("ENDPOINT"),
+    aws_access_key_id=os.getenv("ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY"),
+    config=Config(signature_version="s3v4"),
+    region_name="auto"
+)
 
 type_mapping = {
     "int": LongType(),
@@ -113,9 +125,9 @@ def infer_schema_from_record(record: dict):
 ##########################################################################
 @router.post("/manual-create-ph-table")
 def create_transaction():
-    namespace = "pos_transactions01"
+    namespace = "pos_transactions"
     # table_name = "transaction_with_in_partition"
-    table_name = "transaction_with_out_partition"
+    table_name = "iceberg_with_partitioning"
     table_identifier = f"{namespace}.{table_name}"
 
     # Step 1: Define Iceberg schema
@@ -140,28 +152,28 @@ def create_transaction():
 
 
     # Step 2: Define partition spec
-    # transaction_partition_spec = PartitionSpec(
-    #     PartitionField(
-    #         source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-    #         field_id=2001,
-    #         transform=DayTransform(),
-    #         name="day",
-    #     ),
-    #
-    #     PartitionField(
-    #         source_id=transaction_schema.find_field("store_code__c").field_id,
-    #         field_id=2002,
-    #         transform=BucketTransform(32),
-    #         name="store_bucket",
-    #     ),
-    #
-    #     PartitionField(
-    #         source_id=transaction_schema.find_field("customer_mobile__c").field_id,
-    #         field_id=2004,
-    #         transform=IdentityTransform(),
-    #         name="customer_mobile",
-    #     ),
-    # )
+    transaction_partition_spec = PartitionSpec(
+        PartitionField(
+            source_id=transaction_schema.find_field("Bill_Date__c").field_id,
+            field_id=2001,
+            transform=DayTransform(),
+            name="day",
+        ),
+
+        PartitionField(
+            source_id=transaction_schema.find_field("store_code__c").field_id,
+            field_id=2002,
+            transform=BucketTransform(32),
+            name="store_bucket",
+        ),
+
+        PartitionField(
+            source_id=transaction_schema.find_field("customer_mobile__c").field_id,
+            field_id=2004,
+            transform=IdentityTransform(),
+            name="customer_mobile",
+        ),
+    )
 
     # Step 3: Connect to catalog
     catalog = get_catalog_client()
@@ -179,7 +191,7 @@ def create_transaction():
         tbl = catalog.create_table(
             identifier=table_identifier,
             schema=transaction_schema,
-            # partition_spec=transaction_partition_spec,
+            partition_spec=transaction_partition_spec,
             properties={
                 "format-version": "2",  # <-- mandatory
                 "table-type": "MERGE_ON_READ",  # <-- enable merge-on-read
@@ -276,7 +288,251 @@ def process_chunk(chunk, arrow_schema):
 
     return pa.Table.from_pylist(processed_rows, schema=arrow_schema)
 
+# from dateutil import parser
+#
+# @router.post("/insert-ph-direct-data")
+# def insert_transaction_phone_data(
+#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
+#     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
+#     chunk_size: int = Query(10000, description="Chunk size for multithreading"),
+# ):
+#     total_start = time.time()
+#     namespace, table_name = "pos_transactions01", "transaction_with_out_partition"
+#     dbname = "Transaction"
+#     mysql_creds = MysqlCatalog()
+#
+#     # -------------------------------------------------
+#     # Step 1: Fetch and Convert MySQL Data
+#     # -------------------------------------------------
+#     mysql_start = time.time()
+#     try:
+#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
+#         if not rows:
+#             raise HTTPException(status_code=400, detail="No data found in the given range.")
+#
+#         converted_rows = []
+#         # print("before ...")
+#         # print("rows:",rows)
+#
+#         for row in rows:
+#             # 1️⃣ Convert float fields safely
+#             float_fields = ["bill_tax__c", "bill_grand_total__c", "Invoice_Amount__c"]
+#             for f in float_fields:
+#                 val = row.get(f)
+#                 if isinstance(val, str):
+#                     try:
+#                         row[f] = float(val)
+#                     except ValueError:
+#                         row[f] = 0.0
+#                 elif val is None:
+#                     row[f] = 0.0
+#
+#             # Convert mobile numbers to int64
+#             mobile_val = row.get("customer_mobile__c")
+#             if isinstance(mobile_val, str):
+#                 try:
+#                     row["customer_mobile__c"] = int(mobile_val)
+#                 except ValueError:
+#                     row["customer_mobile__c"] = None
+#
+#             # Convert Item_Code__c to int64
+#             item_val = row.get("Item_Code__c")
+#             if isinstance(item_val, str):
+#                 try:
+#                     row["Item_Code__c"] = int(item_val)
+#                 except ValueError:
+#                     row["Item_Code__c"] = 0
+#
+#             # Convert date strings to Python `date` object (yyyy-mm-dd only)
+#             for date_field in ["Bill_Date__c", "Invoice_Date__c", "CreatedDate"]:
+#                 val = row.get(date_field)
+#                 # if val in ("", " ", None):
+#                 #     row[date_field] = None
+#                 #     continue
+#                 if not val or str(val).strip() == "":
+#                     row[date_field] = None
+#                     continue
+#
+#                 try:
+#                     # use auto parser
+#                     dt = parser.parse(str(val))  # can parse both '6/24/2021 0:00' and '2021-06-24 00:00:00'
+#                     row[date_field] = dt
+#                 except Exception as e:
+#                     print(f"⚠️ Error converting {date_field}: {val} ({e})")
+#                     row[date_field] = None
+#
+#                 # try:
+#                 #     if isinstance(val, str):
+#                 #         val = val.strip()
+#                 #         # handle both with and without time part
+#                 #         if " " in val:
+#                 #             # date_obj = datetime.strptime(val, "%Y-%m-%d %H:%M:%S").date()
+#                 #             row[date_field] = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
+#                 #         else:
+#                 #             # date_obj = datetime.strptime(val, "%Y-%m-%d").date()
+#                 #             row[date_field] = datetime.strptime(val, "%Y-%m-%d")
+#                 #         # row[date_field] = date_obj
+#                 #     elif isinstance(val, datetime):
+#                 #         row[date_field] = val
+#                 # except Exception as e:
+#                 #     print(f"⚠️ Error converting {date_field}: {val} ({e})")
+#                 #     row[date_field] = None
+#
+#             converted_rows.append(row)
+#
+#         # print("After ...")
+#         # print("rows:",converted_rows)
+#
+#         mysql_end = time.time()
+#         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec ({len(rows)} rows).")
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     # -------------------------------------------------
+#     # Step 2: Infer Iceberg + Arrow Schema
+#     # -------------------------------------------------
+#     schema_start = time.time()
+#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
+#     # print("iceberg_schema",iceberg_schema)
+#     # print("arrow_schema",arrow_schema)
+#
+#     schema_end = time.time()
+#     print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 3: Convert Rows to Arrow Tables (Multithreaded)
+#     # -------------------------------------------------
+#     arrow_start = time.time()
+#     chunks = [converted_rows[i:i + chunk_size] for i in range(0, len(converted_rows), chunk_size)]
+#
+#     # print("chunks",chunks)
+#     arrow_tables = []
+#
+#     with ThreadPoolExecutor(max_workers=10) as executor:
+#         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
+#         for future in as_completed(futures):
+#             idx = futures[future]
+#             try:
+#                 tbl = future.result()
+#                 arrow_tables.append(tbl)
+#                 print(f"Chunk {idx + 1}/{len(chunks)} processed with {tbl.num_rows} rows")
+#             except Exception as e:
+#                 print(f"Chunk {idx + 1} failed: {e}")
+#                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
+#
+#     # Correctly combine Arrow tables
+#     # combined_table = pa.concat_tables(arrow_tables)
+#     # print(f"Combined Arrow table rows: {combined_table.num_rows}")
+#
+#
+#     arrow_end = time.time()
+#     print(f"Arrow conversion completed in {arrow_end - arrow_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 4: Load Iceberg Table
+#     # -------------------------------------------------
+#     catalog_start = time.time()
+#     catalog = get_catalog_client()
+#     table_identifier = f"{namespace}.{table_name}"
+#     # print(f"catalog table_identifier: {table_identifier}")
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#         catalog_end = time.time()
+#         print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+#
+#     # -------------------------------------------------
+#     # Step 5: Append Data to Iceberg
+#     # -------------------------------------------------
+#     # combined_table = pa.concat_tables(arrow_tables)
+#     # -------------------------------------------------
+#     # Step 5: Append Data to Iceberg (MULTI BATCH)
+#     # -------------------------------------------------
+#     # append_start = time.time()
+#     #
+#     #
+#     # try:
+#     #     # print(f"🟢 Append table start: {table_identifier}")
+#     #     # tbl.append(combined_table)
+#     #     tbl.append(combined_table)
+#     #     # # tbl.upsert(combined_table)
+#     #     tbl.refresh()
+#     #     append_end = time.time()
+#     #
+#     #
+#     # except Exception as e:
+#     #     error_message = str(e)
+#
+#         # Define custom error codes for clarity
+#         # if "more columns" in error_message and "Update the schema" in error_message:
+#         #     error_code = "ICEBERG_SCHEMA_MISMATCH"
+#         # elif "catalog" in error_message.lower():
+#         #     error_code = "ICEBERG_CATALOG_ERROR"
+#         # elif "permission" in error_message.lower():
+#         #     error_code = "ICEBERG_PERMISSION_DENIED"
+#         # elif "connection" in error_message.lower():
+#         #     error_code = "ICEBERG_CONNECTION_FAILED"
+#         # elif "not found" in error_message.lower():
+#         #     error_code = "ICEBERG_TABLE_NOT_FOUND"
+#         # else:
+#         #     error_code = "ICEBERG_APPEND_FAILED"
+#         #
+#         # print(f"❌ [ERROR CODE: {error_code}] Failed to append table {table_identifier}: {error_message}")
+#         # raise HTTPException(
+#         #     status_code=500,
+#         #     detail={
+#         #         "error_code": error_code,
+#         #         "message": f"Data append failed for table {table_identifier}",
+#         #         "exception": error_message,
+#         #     },
+#         # )
+#     append_start = time.time()
+#     try:
+#         # best practice: append using iterable of batches -> auto snapshot refresh inside append()
+#         for i, batch in enumerate(arrow_tables, start=1):
+#             print(f"Appending batch {i}/{len(arrow_tables)} rows={batch.num_rows}")
+#             tbl.append(batch)  # commit each
+#             # NO need tbl.refresh() each batch
+#
+#         append_end = time.time()
+#
+#     except Exception as e:
+#         error_message = str(e)
+#         error_code = "ICEBERG_APPEND_FAILED"
+#         print(f"❌ {error_code}: {error_message}")
+#
+#         raise HTTPException(
+#             status_code=500,
+#             detail={
+#                 "error_code": error_code,
+#                 "message": f"Data append failed for table {table_identifier}",
+#                 "exception": error_message,
+#             },
+#         )
+#
+#     print(f"✅ Append completed in {append_end - append_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 6: Return Response
+#     # -------------------------------------------------
+#     return {
+#         "success": True,
+#         "message": "Data appended successfully with multithreading",
+#         "rows_fetched": len(rows),
+#         "chunks": len(chunks),
+#         "execution_times": {
+#             "mysql_fetch": round(mysql_end - mysql_start, 2),
+#             "schema_infer": round(schema_end - schema_start, 2),
+#             "arrow_convert": round(arrow_end - arrow_start, 2),
+#             "catalog_load": round(catalog_end - catalog_start, 2),
+#             "append_refresh": round(append_end - append_start, 2),
+#             # "total_time": round(total_end - total_start, 2),
+#         },
+#     }
 
+from dateutil import parser
 
 @router.post("/insert-ph-direct-data")
 def insert_transaction_phone_data(
@@ -285,7 +541,7 @@ def insert_transaction_phone_data(
     chunk_size: int = Query(10000, description="Chunk size for multithreading"),
 ):
     total_start = time.time()
-    namespace, table_name = "pos_transactions01", "transaction_with_out_partition"
+    namespace, table_name = "pos_transactions01", "iceberg"
     dbname = "Transaction"
     mysql_creds = MysqlCatalog()
 
@@ -299,8 +555,7 @@ def insert_transaction_phone_data(
             raise HTTPException(status_code=400, detail="No data found in the given range.")
 
         converted_rows = []
-        # print("before ...")
-        # print("rows:",rows)
+
 
         for row in rows:
             # 1️⃣ Convert float fields safely
@@ -334,31 +589,22 @@ def insert_transaction_phone_data(
             # Convert date strings to Python `date` object (yyyy-mm-dd only)
             for date_field in ["Bill_Date__c", "Invoice_Date__c", "CreatedDate"]:
                 val = row.get(date_field)
-                if val in ("", " ", None):
+
+                if not val or str(val).strip() == "":
                     row[date_field] = None
                     continue
 
                 try:
-                    if isinstance(val, str):
-                        val = val.strip()
-                        # handle both with and without time part
-                        if " " in val:
-                            # date_obj = datetime.strptime(val, "%Y-%m-%d %H:%M:%S").date()
-                            row[date_field] = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
-                        else:
-                            # date_obj = datetime.strptime(val, "%Y-%m-%d").date()
-                            row[date_field] = datetime.strptime(val, "%Y-%m-%d")
-                        # row[date_field] = date_obj
-                    elif isinstance(val, datetime):
-                        row[date_field] = val
+                    # use auto parser
+                    dt = parser.parse(str(val))  # can parse both '6/24/2021 0:00' and '2021-06-24 00:00:00'
+                    row[date_field] = dt
                 except Exception as e:
                     print(f"⚠️ Error converting {date_field}: {val} ({e})")
                     row[date_field] = None
 
             converted_rows.append(row)
 
-        # print("After ...")
-        # print("rows:",converted_rows)
+
 
         mysql_end = time.time()
         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec ({len(rows)} rows).")
@@ -399,7 +645,7 @@ def insert_transaction_phone_data(
                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
 
     # Correctly combine Arrow tables
-    combined_table = pa.concat_tables(arrow_tables)
+    # combined_table = pa.concat_tables(arrow_tables)
     # print(f"Combined Arrow table rows: {combined_table.num_rows}")
 
 
@@ -420,65 +666,22 @@ def insert_transaction_phone_data(
     except NoSuchTableError:
         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
 
-    # -------------------------------------------------
-    # Step 5: Append Data to Iceberg
-    # -------------------------------------------------
-    combined_table = pa.concat_tables(arrow_tables)
-    # -------------------------------------------------
-    # Step 5: Append Data to Iceberg (MULTI BATCH)
-    # -------------------------------------------------
+
     append_start = time.time()
-
-    # print(f"🟢 Multi-batch append start: {table_identifier}")
-    #
-    # for i, batch in enumerate(arrow_tables, start=1):
-    #     print(f"   → Appending batch {i}/{len(arrow_tables)} with {batch.num_rows} rows")
-    #     tbl.append(batch)
-    #     tbl.refresh()
-    #
-    # append_end = time.time()
-    # print(f"✅ Multi-batch append completed in {append_end - append_start:.2f} sec")
-
     try:
-        # print(f"🟢 Append table start: {table_identifier}")
-        # tbl.append(combined_table)
-        tbl.append(combined_table)
-        # # tbl.upsert(combined_table)
-        tbl.refresh()
+
+        for i, batch in enumerate(arrow_tables, start=1):
+            print(f"Appending batch {i}/{len(arrow_tables)} rows={batch.num_rows}")
+            tbl.append(batch)  # commit each
+
+
         append_end = time.time()
-        # print(f"✅ Append table end: {table_identifier}")
-        # for _ in range(5):
-        #     tbl.refresh()
-        #     try:
-        #         tbl.upsert(combined_table)
-        #         tbl.refresh()
-        #         break
-        #     except Exception as e:
-        #         if "snapshot has changed" in str(e):
-        #             time.sleep(1)
-        #             continue
-        #         else:
-        #             raise e
-        # print(f"Data append + refresh completed in {append_end - append_start:.2f} sec")
 
     except Exception as e:
         error_message = str(e)
+        error_code = "ICEBERG_APPEND_FAILED"
+        print(f"❌ {error_code}: {error_message}")
 
-        # Define custom error codes for clarity
-        if "more columns" in error_message and "Update the schema" in error_message:
-            error_code = "ICEBERG_SCHEMA_MISMATCH"
-        elif "catalog" in error_message.lower():
-            error_code = "ICEBERG_CATALOG_ERROR"
-        elif "permission" in error_message.lower():
-            error_code = "ICEBERG_PERMISSION_DENIED"
-        elif "connection" in error_message.lower():
-            error_code = "ICEBERG_CONNECTION_FAILED"
-        elif "not found" in error_message.lower():
-            error_code = "ICEBERG_TABLE_NOT_FOUND"
-        else:
-            error_code = "ICEBERG_APPEND_FAILED"
-
-        print(f"❌ [ERROR CODE: {error_code}] Failed to append table {table_identifier}: {error_message}")
         raise HTTPException(
             status_code=500,
             detail={
@@ -488,8 +691,7 @@ def insert_transaction_phone_data(
             },
         )
 
-    total_end = time.time()
-    print(f"✅ Total execution time: {total_end - total_start:.2f} sec")
+    print(f"✅ Append completed in {append_end - append_start:.2f} sec")
 
     # -------------------------------------------------
     # Step 6: Return Response
@@ -505,7 +707,7 @@ def insert_transaction_phone_data(
             "arrow_convert": round(arrow_end - arrow_start, 2),
             "catalog_load": round(catalog_end - catalog_start, 2),
             "append_refresh": round(append_end - append_start, 2),
-            "total_time": round(total_end - total_start, 2),
+            # "total_time": round(total_end - total_start, 2),
         },
     }
 
@@ -620,3 +822,294 @@ def table_filter(
         "sample_rows": df.head(10).to_dict(orient="records"),
         "timeline_seconds": total_time
     }
+
+@router.get("/iceberg/metadata-list")
+def get_metadata_list(
+    namespace: str = Query(...),
+    table_name: str = Query(...)
+):
+    try:
+        catalog = get_catalog_client()
+        table_identifier = f"{namespace}.{table_name}"
+        tbl = catalog.load_table(table_identifier)
+        print(tbl.metadata.metadata_log)
+        logs = tbl.metadata.metadata_log
+
+        return {
+            "success": True,
+            "table": table_identifier,
+            "metadata_files": [
+                {
+                    "metadata_file": x.metadata_file,
+                    "timestamp_ms": x.timestamp_ms
+                }
+                for x in logs
+            ]
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# @router.get("/iceberg/avro-files")
+# def iceberg_avro_files(
+#     namespace: str = Query(...),
+#     table_name: str = Query(...)
+# ):
+#     try:
+#         catalog = get_catalog_client()
+#         table_identifier = f"{namespace}.{table_name}"
+#         tbl = catalog.load_table(table_identifier)
+#         # # print(tbl.snapshots())
+#         # result = []
+#         # # print(tbl.metadata.avro_files)
+#         # for snap in tbl.snapshots():
+#         #     # print("snap",snap.manifests)
+#         #     for manifest in snap.manifests():
+#         #         print("manifest:")
+#         #         try:
+#         #             for df in manifest.fetch_data_files():
+#         #                 print(df)
+#         #                 # only include AVRO files, skip parquet
+#         #                 if df.file_path.endswith(".avro"):
+#         #                     result.append({
+#         #                         "snapshot_id": snap.snapshot_id,
+#         #                         "manifest": manifest.path,
+#         #                         "avro_file": df.file_path,
+#         #                         "record_count": df.record_count
+#         #                     })
+#         #         except Exception:
+#         #             pass
+#         result = []
+#
+#         for snap in tbl.snapshots:  # no ()
+#             for manifest in snap.manifests:  # no ()
+#                 try:
+#                     for df in manifest.fetch_data_files():  # correct for 0.10.0
+#                         if df.file_path.endswith(".avro"):
+#                             result.append({
+#                                 "snapshot_id": snap.snapshot_id,
+#                                 "manifest": manifest.path,
+#                                 "avro_file": df.file_path,
+#                                 "record_count": df.record_count
+#                             })
+#                 except Exception:
+#                     pass
+#
+#         return {
+#             "success": True,
+#             "table": table_identifier,
+#             "total_avro_files": len(result),
+#             "files": result
+#         }
+
+        # return {
+        #     "success": True,
+        #     "table": table_identifier,
+        #     "total_avro_files": len(result),
+        #     "files": result
+        # }
+
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
+import traceback
+import sys
+
+@router.get("/iceberg/avro-files")
+def iceberg_avro_files(
+    namespace: str = Query(...),
+    table_name: str = Query(...)
+):
+    try:
+        catalog = get_catalog_client()
+        table_identifier = f"{namespace}.{table_name}"
+        tbl = catalog.load_table(table_identifier)
+
+        result = []
+        for snap in tbl.snapshots():
+            print("snap",snap)
+            for manifest in snap.manifests():
+                print("manifest:",manifest)
+                for df in manifest:
+                    print("df",df)
+                    if str(df.file_path).lower().endswith(".avro"):
+                        result.append({
+                            "snapshot_id": snap.snapshot_id,
+                            "manifest": manifest.manifest_path,
+                            "avro_file": df.file_path,
+                            "record_count": df.record_count
+                        })
+
+        return {
+            "success": True,
+            "table": table_identifier,
+            "total_avro_files": len(result),
+            "files": result
+        }
+
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        exc_type, exc_obj, tb = sys.exc_info()
+        line_number = tb.tb_lineno
+        error_trace = traceback.format_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": str(e),
+                "type": str(exc_type.__name__),
+                "line": line_number,
+                "trace": error_trace
+            }
+        )
+
+import gzip
+import json
+import pandas as pd
+#
+# with gzip.open("json_backups/05.metadata.json", "rb") as f:
+#     data = json.loads(f.read().decode("utf-8"))   # decompress + decode
+#
+# df = pd.json_normalize(data)   # flatten into DataFrame
+# # print(df.columns)
+#
+# # for col,index in df:
+# #     print(col,index)
+# print("start ...")
+# for col in df.columns:
+#
+#     for idx in df.index:
+#         print(col, idx, df.loc[idx, col])
+#         print("*"*100)
+
+# @router.get("/metadata-json-read")
+# def read_metadata_json(
+#     file_path: str = Query(..., description="path to metadata gz file, example: json_backups/05.metadata.json")
+# ):
+#     try:
+#         with gzip.open(file_path, "rb") as f:
+#             data = json.loads(f.read().decode("utf-8"))
+#
+#         df = pd.json_normalize(data)
+#
+#         # convert dataframe to list of dicts for JSON response
+#         result = df.to_dict(orient="records")
+#
+#         return {
+#             "success": True,
+#             "rows": len(result),
+#             "columns": list(df.columns),
+#             "data": result
+#         }
+#
+#     except FileNotFoundError:
+#         raise HTTPException(status_code=404, detail="file not found")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+import boto3
+s3 = boto3.client("s3")
+
+# @router.get("/metadata-json-read")
+# def read_metadata_json(s3_path: str):
+#     # s3_path example:
+#     # s3://dev-transaction/....json
+#
+#     if not s3_path.startswith("s3://"):
+#         raise HTTPException(400, "must start with s3://")
+#
+#     parts = s3_path[5:].split("/", 1)
+#     bucket = parts[0]
+#     key = parts[1]
+#
+#     try:
+#         obj = s3.get_object(Bucket=bucket, Key=key)
+#         raw = obj["Body"].read()
+#         data = json.loads(gzip.decompress(raw))   # decompress + parse
+#
+#         df = pd.json_normalize(data)
+#         return df.to_dict(orient="records")
+#
+#     except Exception as e:
+#         raise HTTPException(500, str(e))
+
+# @router.get("/metadata-json-read")
+# def read_metadata_json(
+#     s3_path: str = Query(..., description="full s3 metadata gz path")
+# ):
+#     """
+#     example:
+#     /metadata-json-read?s3_path=s3://dev-transaction/.../metadata/00000-abc.gz.metadata.json
+#     """
+#     try:
+#         parts = s3_path[5:].split("/", 1)
+#         bucket = parts[0]
+#         key = parts[1]
+#
+#         obj = s3.get_object(Bucket=bucket, Key=key)
+#         raw = obj["Body"].read()
+#         data = json.loads(gzip.decompress(raw))
+#
+#         df = pd.json_normalize(data)
+#         return df.to_dict(orient="records")
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+# import boto3
+# s3 = boto3.client("s3")
+
+
+
+
+@router.get("/metadata-json-read/{s3_path:path}")
+def read_metadata_json(s3_path: str):
+    import gzip, json, pandas as pd
+    from fastapi import HTTPException
+    import boto3
+
+    # s3 = boto3.client("s3")
+    s3 = boto3.client(
+        "s3",
+        endpoint_url=os.getenv("ENDPOINT"),
+        aws_access_key_id=os.getenv("ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY"),
+        config=Config(signature_version="s3v4"),
+        region_name="auto"
+    )
+
+    try:
+        if not s3_path.startswith("s3://"):
+            raise HTTPException(400, "Path must start with s3://")
+
+        bucket_key = s3_path[5:].split("/", 1)
+        bucket = bucket_key[0]
+        key = bucket_key[1]
+
+        obj = s3.get_object(Bucket=bucket, Key=key)
+        raw = obj["Body"].read()
+        data = json.loads(gzip.decompress(raw))
+
+        df = pd.json_normalize(data)
+        return df.to_dict(orient="records")
+
+    except Exception as e:
+        raise HTTPException(500, str(e))
+
+import pyarrow as pa
+from fastavro import reader
+
+
+@router.get("/read-avro")
+def read_avro(file_path: str = Query(..., description="Path to avro file")):
+    try:
+        with pa.memory_map(file_path, "r") as f:
+            table = reader(f)
+
+        num_rows = table.num_rows
+        sample_data = table.to_pylist()[:5]  # first 5 rows
+
+        return {
+            "rows": num_rows,
+            "sample": sample_data
+        }
+    except Exception as e:
+        return {"error": str(e)}
