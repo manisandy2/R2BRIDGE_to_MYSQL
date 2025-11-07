@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, Body, HTTPException,UploadFile, File
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError,EndpointConnectionError
 import logging, json
 from ...core.r2_client import get_r2_client
 
@@ -11,11 +11,18 @@ def list_buckets():
     r2_client = get_r2_client()
     try:
         response = r2_client.list_buckets()
-        print(response)
+        # print(response)
         buckets = [b["Name"] for b in response["Buckets"]]
         return {"buckets": buckets}
+    except EndpointConnectionError as e:
+        raise HTTPException(status_code=503, detail=f"Connection error: {str(e)}")
     except ClientError as e:
-        return {"error": str(e)}
+        code = e.response["Error"]["Code"]
+        msg = e.response["Error"]["Message"]
+        raise HTTPException(status_code=400, detail=f"{code}: {msg}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Unknown Error: {str(e)}")
+
 
 @router.post("/create-bucket")
 def create_bucket(bucket_name: str = Query(..., description="Name of the new R2 bucket")):

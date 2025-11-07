@@ -28,7 +28,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 LOGS_FOLDER = "logs/iceberg_upload"
 os.makedirs(LOGS_FOLDER, exist_ok=True)
 
-router = APIRouter(prefix="", tags=["Transaction version 01"])
+router = APIRouter(prefix="", tags=["version 02"])
 
 s3 = boto3.client(
     "s3",
@@ -118,16 +118,14 @@ def infer_schema_from_record(record: dict):
 
     iceberg_schema = Schema(*iceberg_fields)
     arrow_schema = pa.schema(arrow_fields)
-    # print("Ice Berg Schema",iceberg_schema)
-    # print("Arrow Schema",arrow_schema)
     return iceberg_schema, arrow_schema
 
 ##########################################################################
-@router.post("/manual-create-ph-table")
+@router.post("/create-table")
 def create_transaction():
-    namespace = "pos_transactions"
+    namespace = "pos_transactions_with_out"
     # table_name = "transaction_with_in_partition"
-    table_name = "iceberg_with_partitioning"
+    table_name = "iceberg_out_partitioning"
     table_identifier = f"{namespace}.{table_name}"
 
     # Step 1: Define Iceberg schema
@@ -135,11 +133,11 @@ def create_transaction():
         NestedField(1,"pri_id",LongType(),required=True),
         NestedField(2, "store_code__c", StringType()),
         NestedField(3, "Branch_Name__c", StringType()),
-        NestedField(4, "customer_mobile__c", LongType()),
-        NestedField(5, "Customer_Name__c", StringType()),
-        NestedField(6, "Bill_No__c", StringType()),
-        NestedField(7, "Bill_Date__c", DateType()),
-        NestedField(8, "Invoice_Date__c", StringType()), # test
+        NestedField(4, "customerId", StringType()),
+        NestedField(5, "customer_mobile__c", LongType()),
+        NestedField(6, "Customer_Name__c", StringType()),
+        NestedField(7, "Bill_No__c", StringType()),
+        NestedField(8, "Bill_Date__c", DateType()),
         NestedField(9, "Invoice_Amount__c", DoubleType()),
         NestedField(10, "bill_status__c", StringType()),
         NestedField(11, "bill_transaction_no__c", StringType()),
@@ -152,28 +150,15 @@ def create_transaction():
 
 
     # Step 2: Define partition spec
-    transaction_partition_spec = PartitionSpec(
-        PartitionField(
-            source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-            field_id=2001,
-            transform=DayTransform(),
-            name="day",
-        ),
-
-        PartitionField(
-            source_id=transaction_schema.find_field("store_code__c").field_id,
-            field_id=2002,
-            transform=BucketTransform(32),
-            name="store_bucket",
-        ),
-
-        PartitionField(
-            source_id=transaction_schema.find_field("customer_mobile__c").field_id,
-            field_id=2004,
-            transform=IdentityTransform(),
-            name="customer_mobile",
-        ),
-    )
+    # transaction_partition_spec = PartitionSpec(
+    #     PartitionField(
+    #         source_id=transaction_schema.find_field("Bill_Date__c").field_id,
+    #         field_id=2001,
+    #         transform=YearTransform(),
+    #         name="year",
+    #     ),
+    #
+    # )
 
     # Step 3: Connect to catalog
     catalog = get_catalog_client()
@@ -191,7 +176,7 @@ def create_transaction():
         tbl = catalog.create_table(
             identifier=table_identifier,
             schema=transaction_schema,
-            partition_spec=transaction_partition_spec,
+            # partition_spec=transaction_partition_spec,
             properties={
                 "format-version": "2",  # <-- mandatory
                 "table-type": "MERGE_ON_READ",  # <-- enable merge-on-read
@@ -200,7 +185,9 @@ def create_transaction():
                 "write.format.default": "parquet",
                 "write.parquet.compression-codec": "zstd",
                 "write.partition.path-style": "directory",
-                # "write.target-file-size-bytes": "268435456"
+                "write.sort.order": "customer_mobile__c ASC, Bill_Date__c ASC",
+                # write.sort.order": "month(Bill_Date__c) ASC, customer_mobile__c ASC, Bill_Date__c ASC"
+                "write.target-file-size-bytes": "268435456"
             },
         )
         print(f"✅ Created Iceberg table: {table_identifier}")
@@ -538,10 +525,10 @@ from dateutil import parser
 def insert_transaction_phone_data(
     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
-    chunk_size: int = Query(10000, description="Chunk size for multithreading"),
+    chunk_size: int = Query(100000, description="Chunk size for multithreading"),
 ):
     total_start = time.time()
-    namespace, table_name = "pos_transactions01", "iceberg"
+    namespace, table_name = "pos_transactions_with_out", "iceberg_out_partitioning"
     dbname = "Transaction"
     mysql_creds = MysqlCatalog()
 
@@ -587,7 +574,7 @@ def insert_transaction_phone_data(
                     row["Item_Code__c"] = 0
 
             # Convert date strings to Python `date` object (yyyy-mm-dd only)
-            for date_field in ["Bill_Date__c", "Invoice_Date__c", "CreatedDate"]:
+            for date_field in ["Bill_Date__c",  "CreatedDate"]:
                 val = row.get(date_field)
 
                 if not val or str(val).strip() == "":
@@ -643,10 +630,6 @@ def insert_transaction_phone_data(
             except Exception as e:
                 print(f"Chunk {idx + 1} failed: {e}")
                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
-
-    # Correctly combine Arrow tables
-    # combined_table = pa.concat_tables(arrow_tables)
-    # print(f"Combined Arrow table rows: {combined_table.num_rows}")
 
 
     arrow_end = time.time()
@@ -780,11 +763,125 @@ def table_filter(
         "sample_rows": df.head(10).to_dict(orient="records"),
         "timeline_seconds": total_time
     }
+@router.get("/table-count")
+def table_count(
+    namespace: str = Query("pos_transactions"),
+    table_name: str = Query("iceberg_with_partitioning"),
+    bill_date: str | None = Query(None),
+    store_code: str | None = Query(None),
+    customer_mobile: str | None = Query(None)
+):
+    import datetime
+    from pyiceberg.expressions import And, EqualTo
 
-@router.get("/phone")
+    start = time.perf_counter()
+    table_identifier = f"{namespace}.{table_name}"
+    catalog = get_catalog_client()
+
+    try:
+        tbl = catalog.load_table(table_identifier)
+    except NoSuchTableError:
+        raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error loading table: {str(e)}")
+
+    expr = None
+    try:
+        if bill_date:
+            bill_date_parsed = datetime.datetime.strptime(bill_date, "%Y-%m-%d").date()
+            expr = EqualTo("Bill_Date__c", bill_date_parsed)
+
+        if store_code:
+            cond = EqualTo("store_code__c", store_code)
+            expr = cond if expr is None else And(expr, cond)
+
+        if customer_mobile:
+            cond = EqualTo("customer_mobile__c", int(customer_mobile))
+            expr = cond if expr is None else And(expr, cond)
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid filter value: {str(e)}")
+
+    # fast count
+    try:
+        scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
+        count_rows = scan.count()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading count: {str(e)}")
+
+    return {
+        "namespace": namespace,
+        "table_name": table_name,
+        "filters": {
+            "bill_date": bill_date,
+            "store_code": store_code,
+            "customer_mobile": customer_mobile
+        },
+        "count": count_rows,
+        "seconds": round(time.perf_counter() - start, 4)
+    }
+@router.get("/date-range")
+def filter_date_range(
+    namespace: str = Query("pos_transactions"),
+    table_name: str = Query("iceberg_with_partitioning"),
+    start_date: str = Query(..., description="YYYY-MM-DD"),
+    end_date: str = Query(..., description="YYYY-MM-DD"),
+    phone: str | None = Query(None, description="Filter by customer_mobile__c")
+):
+    from pyiceberg.expressions import And, GreaterThanOrEqual, LessThanOrEqual, EqualTo
+    import datetime
+    start = time.perf_counter()
+
+    # validate dates
+    try:
+        d1 = datetime.datetime.strptime(start_date, "%Y-%m-%d").date()
+        d2 = datetime.datetime.strptime(end_date, "%Y-%m-%d").date()
+    except:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    table_identifier = f"{namespace}.{table_name}"
+    catalog = get_catalog_client()
+
+    try:
+        tbl = catalog.load_table(table_identifier)
+    except NoSuchTableError:
+        raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+
+    # base expr = date range
+    expr = And(
+        GreaterThanOrEqual("Bill_Date__c", d1),
+        LessThanOrEqual("Bill_Date__c", d2),
+    )
+
+    # add phone filter if present
+    if phone:
+        try:
+            phone_int = int(phone)
+        except:
+            raise HTTPException(status_code=400, detail="phone must be integer digits")
+        expr = And(expr, EqualTo("customer_mobile__c", phone_int))
+
+    # scan / read data
+    try:
+        df = tbl.scan(row_filter=expr).to_arrow().to_pandas().reset_index(drop=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
+
+    return {
+        "namespace": namespace,
+        "table_name": table_name,
+        "start_date": start_date,
+        "end_date": end_date,
+        "phone": phone,
+        "count": len(df),
+        "sample_rows": df.head(10).to_dict(orient="records"),
+        "timeline_seconds": round(time.perf_counter() - start, 3)
+    }
+
+@router.get("/pri_id")
 def table_filter(
-    namespace: str = Query("pos_transactions01"),
-    table_name: str = Query("transaction01"),
+    namespace: str = Query("pos_transactions"),
+    table_name: str = Query("iceberg_with_partitioning"),
     pri_id: str = Query(default=None),
     # phone: str = Query(default=None),
 ):
@@ -799,14 +896,17 @@ def table_filter(
     except NoSuchTableError:
         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
 
-    # default pri_id filter 1 → 10000
-    # expr = And(
-    #     GreaterThanOrEqual("pri_id", 1),
-    #     LessThanOrEqual("pri_id", 100)
-    # )
+    if pri_id is None:
+        raise HTTPException(status_code=400, detail="pri_id is required")
 
-    # expr = EqualTo("customer_mobile__c",phone)
-    expr = EqualTo("pri_id",pri_id)
+    try:
+        pri_id_value = int(pri_id)
+    except:
+        raise HTTPException(status_code=400, detail="pri_id must be integer")
+
+    expr = EqualTo("pri_id", pri_id_value)
+
+
 
     try:
         df = tbl.scan(row_filter=expr).to_arrow().to_pandas().reset_index(drop=True)
@@ -1113,3 +1213,205 @@ def read_avro(file_path: str = Query(..., description="Path to avro file")):
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+#     }
+@router.get("/list-parquet")
+def list_parquet(
+        namespace: str = Query("pos_transactions"),
+        table_name: str = Query("iceberg_with_partitioning")
+):
+    """
+    List parquet files for given Iceberg table (from manifest)
+    """
+    start = time.perf_counter()
+    catalog = get_catalog_client()
+
+    try:
+        tbl = catalog.load_table(f"{namespace}.{table_name}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"load table failed: {str(e)}")
+
+    files = []
+    snap = tbl.current_snapshot()
+    print("snap",snap)
+    if not snap:
+        return {"files": []}
+
+    for manifest in snap.manifests(tbl.io):
+        print("manifest:",manifest)
+        m = manifest.fetch_manifest_entry(tbl.io)
+        entries = manifest.fetch_manifest_entry(tbl.io)
+
+        for e in entries:  # e is ManifestEntry
+            df = e.data_file  # df is DataFile
+            files.append({
+                "path": df.file_path,
+                "rows": df.record_count,
+                "size_bytes": df.file_size_in_bytes,
+            })
+
+    return {
+        "count": len(files),
+        "files": files,
+        "time_seconds": round(time.perf_counter() - start, 3) }
+
+
+
+@router.get("/read-parquet")
+def read_parquet(path: str = Query(..., description="Full s3:// R2 parquet path"), limit: int = Query(10)):
+    """
+    Read parquet file directly from Cloudflare R2 and return sample rows.
+    Example:
+      /read-parquet?path=s3://bucket/pos_transactions/.../00001.parquet&limit=20
+    """
+    import pyarrow.parquet as pq
+    import pyarrow.fs as fs
+    import os
+
+    try:
+        s3fs = fs.S3FileSystem(
+            access_key=os.getenv("ACCESS_KEY_ID"),
+            secret_key=os.getenv("SECRET_ACCESS_KEY"),
+            endpoint_override=os.getenv("ENDPOINT"),
+        )
+
+        # read
+        table = pq.read_table(path, filesystem=s3fs)
+        df = table.to_pandas().head(limit)
+
+        return {
+            "path": path,
+            "row_count_file": table.num_rows,
+            "sample_rows": df.to_dict(orient="records")
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read parquet: {str(e)}")
+
+
+@router.post("/merge-parquet")
+def merge_parquet(
+    namespace: str = Query("pos_transactions"),
+    table_name: str = Query("iceberg_with_partitioning"),
+    max_merge_rows: int = Query(20000, description="merge all files smaller than this row count")
+):
+    import time
+    import pyarrow.parquet as pq
+    import pyarrow.fs as fs
+    import pyarrow as pa
+
+    start = time.perf_counter()
+    catalog = get_catalog_client()
+    tbl = catalog.load_table(f"{namespace}.{table_name}")
+
+    snap = tbl.current_snapshot()
+    if not snap:
+        raise HTTPException(status_code=400, detail="No snapshot yet")
+
+    # list small files
+    small_files = []
+    for manifest in snap.manifests(tbl.io):
+        entries = manifest.fetch_manifest_entry(tbl.io)
+        for e in entries:
+            df = e.data_file
+            if df.record_count < max_merge_rows:
+                small_files.append(df.file_path)
+
+    if not small_files:
+        return {"message": "no small files to merge"}
+
+    # read small files
+    s3fs = fs.S3FileSystem(
+        access_key=os.getenv("ACCESS_KEY_ID"),
+        secret_key=os.getenv("SECRET_ACCESS_KEY"),
+        endpoint_override=os.getenv("ENDPOINT"),
+    )
+
+
+    tables = []
+    for f in small_files:
+        print(f"f: {f[5:]}")
+        t = pq.read_table(f[5:], filesystem=s3fs)
+        tables.append(t)
+
+    merged = pa.concat_tables(tables)
+
+    # write merged file to table (append)
+    tbl.append(merged)
+
+    return {
+        "merged_files_count": len(small_files),
+        "new_file_rows": merged.num_rows,
+        "time_seconds": round(time.perf_counter() - start, 3),
+    }
+
+
+@router.post("/merge-parquet")
+def merge_parquet(
+    namespace: str = Query("pos_transactions"),
+    table_name: str = Query("iceberg_with_partitioning"),
+    max_rows: int = Query(20000, description="merge files smaller than this row count"),
+):
+    import pyarrow.parquet as pq
+    import pyarrow.fs as fs
+    import pyarrow as pa
+    import os
+    import time
+
+    start = time.perf_counter()
+    catalog = get_catalog_client()
+    tbl = catalog.load_table(f"{namespace}.{table_name}")
+
+    snap = tbl.current_snapshot()
+    if not snap:
+        raise HTTPException(status_code=400, detail="no snapshot")
+
+    # 1) find small files
+    small_files = []
+    for manifest in snap.manifests(tbl.io):
+        entries = manifest.fetch_manifest_entry(tbl.io)
+        for e in entries:
+            df = e.data_file
+            if df.record_count < max_rows:
+                small_files.append(df.file_path)
+
+    if not small_files:
+        return {"message": "no small files to merge"}
+
+    # 2) read small files
+    s3fs = fs.S3FileSystem(
+        access_key=os.getenv("ACCESS_KEY_ID"),
+        secret_key=os.getenv("SECRET_ACCESS_KEY"),
+        endpoint_override=os.getenv("ENDPOINT"),
+    )
+
+    tables = []
+    for p in small_files:
+        raw = p.replace("s3://", "", 1) if p.startswith("s3://") else p
+        t = pq.read_table(raw, filesystem=s3fs)
+        tables.append(t)
+
+    merged = pa.concat_tables(tables)
+
+    # 3) append new merged file
+    tbl.append(merged)
+
+    # 4) delete old small files (AFTER append)
+    bucket = os.getenv("BUCKET_NAME")
+    r2 = get_catalog_client()
+
+    for p in small_files:
+        key = p.replace(f"s3://{bucket}/", "")
+        try:
+            r2.delete_object(Bucket=bucket, Key=key)
+            print("deleted:", key)
+        except Exception as e:
+            print("delete failed:", key, e)
+
+    return {
+        "merged_files_count": len(small_files),
+        "new_file_rows": merged.num_rows,
+        "seconds": round(time.perf_counter() - start, 3),
+        "status": "✅ merged + old files deleted"
+    }
