@@ -9,9 +9,9 @@ from pyiceberg.io.pyarrow import PyArrowFileIO
 from pyiceberg.manifest import read_manifest_list
 
 
-router = APIRouter()
+router = APIRouter(prefix="", tags=["iceberg"])
 
-@router.get("/iceberg/inspect-snapshots")
+@router.get("/inspect-snapshots")
 def inspect_iceberg_snapshots(
     namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
     table_name: str = Query("transaction01", description="Iceberg table name")

@@ -1,10 +1,13 @@
 from fastapi import APIRouter,Query,HTTPException
 from pyiceberg.exceptions import NoSuchTableError
 from ...core.catalog_client import get_catalog_client
+from pyiceberg.schema import Schema
 # from core.catalog_client import security,verify_jwt
 # from fastapi.security import HTTPAuthorizationCredentials
+from pyiceberg.types import *
+from pyiceberg.catalog import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError,NoSuchTableError
 
-router = APIRouter(prefix="", tags=["Transaction Tables"])
+router = APIRouter(prefix="", tags=["Tables"])
 
 
 @router.get("/table/list")
@@ -23,6 +26,94 @@ def get_tables(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list tables in namespace '{namespace}': {str(e)}")
+
+@router.post("/table/create")
+def create_transaction(
+        namespace: str = Query("pos_transactions"),
+        table_name: str = Query(..., description="Table name"),
+):
+    # namespace = "pos_transactions_add_range"
+    # table_name = "transaction_with_in_partition"
+    # table_name = "iceberg_add_range_test"
+    table_identifier = f"{namespace}.{table_name}"
+
+    # Step 1: Define Iceberg schema
+    transaction_schema = Schema(
+        NestedField(1,"pri_id",LongType(),required=True),
+        NestedField(2, "store_code__c", StringType()),
+        NestedField(3, "Branch_Name__c", StringType()),
+        NestedField(4, "customerId", StringType()),
+        NestedField(5, "customer_mobile__c", LongType()),
+        NestedField(6, "Customer_Name__c", StringType()),
+        NestedField(7, "Bill_No__c", StringType()),
+        NestedField(8, "Bill_Date__c", DateType()),
+        NestedField(9, "Invoice_Amount__c", DoubleType()),
+        NestedField(10, "bill_status__c", StringType()),
+        NestedField(11, "bill_transaction_no__c", StringType()),
+        NestedField(12, "Item_Code__c", LongType()),
+        NestedField(13, "Item_Name__c", StringType()),
+        NestedField(14, "bill_tax__c", DoubleType()),
+        NestedField(15, "bill_grand_total__c", DoubleType()),
+        NestedField(16, "CreatedDate", DateType()),
+    )
+
+
+    # Step 2: Define partition spec
+    # transaction_partition_spec = PartitionSpec(
+    #     PartitionField(
+    #         source_id=transaction_schema.find_field("Bill_Date__c").field_id,
+    #         field_id=2001,
+    #         transform=YearTransform(),
+    #         name="year",
+    #     ),
+    #
+    # )
+
+    # Step 3: Connect to catalog
+    catalog = get_catalog_client()
+
+    # Step 4: Ensure namespace exists
+    try:
+        catalog.load_namespace_properties(namespace)
+    except NoSuchNamespaceError:
+        catalog.create_namespace(namespace)
+    except NamespaceAlreadyExistsError:
+        pass
+
+    # Step 5: Create table
+    try:
+        tbl = catalog.create_table(
+            identifier=table_identifier,
+            schema=transaction_schema,
+            # partition_spec=transaction_partition_spec,
+            properties={
+                "format-version": "2",  # <-- mandatory
+                "table-type": "MERGE_ON_READ",  # <-- enable merge-on-read
+                "primary-key": "pri_id",        # <-- enforce PK
+                "identifier-field-ids": "1",
+                "write.format.default": "parquet",
+                "write.parquet.compression-codec": "zstd",
+                "write.partition.path-style": "directory",
+                "write.sort.order": "customer_mobile__c ASC, Bill_Date__c ASC",
+                # write.sort.order": "month(Bill_Date__c) ASC, customer_mobile__c ASC, Bill_Date__c ASC"
+                "write.target-file-size-bytes": "268435456"
+            },
+        )
+        print(f"✅ Created Iceberg table: {table_identifier}")
+
+        # Step 6: Return confirmation
+        return {
+            "status": "created",
+            "table": table_identifier,
+            "schema_fields": [f.name for f in transaction_schema.fields],
+            # "partitions": [f.name for f in transaction_partition_spec.fields],
+        }
+
+    except TableAlreadyExistsError:
+        return {"status": "exists", "table": table_identifier}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
+
 
 @router.post("/table/rename")
 def rename_table(

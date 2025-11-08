@@ -3,18 +3,18 @@ from pyiceberg.catalog import load_catalog
 from pyiceberg.schema import Schema, NestedField
 from pyiceberg.types import StringType, LongType, DateType,TimestampType
 import logging
-
+from pyiceberg.exceptions import NamespaceAlreadyExistsError, NoSuchTableError, ValidationError
 from sqlalchemy.sql.sqltypes import NullType
 
 from ...core.catalog_client import get_catalog_client
 from fastapi import APIRouter,Query,HTTPException
 
 app = FastAPI()
-router = APIRouter(prefix="/schema", tags=["Schema"])
+router = APIRouter(prefix="", tags=["Schema"])
 logger = logging.getLogger(__name__)
 
 
-@router.get("/list")
+@router.get("/Schema/list")
 def list_schema(
         namespace: str = Query(default="pos_transactions01",description="Namespace"),
         table_name: str = Query(default="transaction01",description="Table name"),
@@ -32,7 +32,7 @@ def list_schema(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/create")
+@router.post("/Schema/create")
 def create_table(
     namespace: str = Query(default="pos_transactions01",description="Namespace"),
     table_name: str = Query(default="transaction01",description="Table name"),
@@ -132,9 +132,9 @@ def create_table(
 #
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
-from pyiceberg.exceptions import NamespaceAlreadyExistsError, NoSuchTableError, ValidationError
 
-@router.put("/update")
+
+@router.put("/Schema/update")
 def update_schema(
     namespace: str = Query(default="pos_transactions01",description="Namespace"),
     table_name: str = Query(default="transaction01",description="Table name"),
@@ -184,7 +184,6 @@ def update_schema(
 
         return {
             "status": "success",
-            # "table": table_identifier,
             "column": column_name,
             "old_type": str(old_field.field_type),
             "new_type": str(new_field.field_type),
@@ -195,13 +194,7 @@ def update_schema(
         raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
 
 
-
-
-
-
-
-
-@router.delete("/delete")
+@router.delete("/Schema/delete")
 def delete_table(namespace: str = Query(...), table_name: str = Query(...)):
     try:
         catalog = get_catalog_client()
@@ -209,7 +202,3 @@ def delete_table(namespace: str = Query(...), table_name: str = Query(...)):
         return {"status": "success", "message": f"Table '{table_name}' deleted successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# Include router
-# app.include_router(router, prefix="/iceberg")

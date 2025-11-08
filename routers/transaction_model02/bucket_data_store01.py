@@ -7,8 +7,9 @@ from botocore.client import Config
 import time, json, boto3, os
 import os
 from ...core.r2_client import get_r2_client
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-router = APIRouter(prefix="/transaction", tags=["transaction bucket data store"])
+router = APIRouter(prefix="", tags=["bucket store"])
 
 # --- CONFIG ---
 BATCH_SIZE = 1000
@@ -64,6 +65,30 @@ def make_json_serializable(record: dict[str, Any]) -> dict[str, Any]:
             record[k] = v.decode(errors="ignore")
     return record
 
+@router.get("/bucket/list")
+def get_list(
+    bucket_name: str = Query("dev-transaction", title="Bucket Name",description="Bucket name (default: dev-transaction)"),
+    bucket_path: str = Query("pos_transactions", description="Folder path in R2 (default: pos_transactions)"),
+):
+    r2_client = get_r2_client()
+    prefix = f"{bucket_path}/"
+
+    try:
+        paginator = r2_client.get_paginator("list_objects_v2")
+        files = []
+
+        for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+            if "Contents" in page:
+                for obj in page["Contents"]:
+                    files.append(obj["Key"])
+
+        return {
+            "total_files": len(files),
+            "files": files  # you can remove this if too large
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 
 # --- Helper: Upload one batch to R2 ---
 # async def upload_batch(batch_index: int, batch_data: List[dict[str, Any]]):
@@ -225,8 +250,8 @@ import concurrent.futures
 import math
 
 
-@router.post("/create-pri-id")
-async def create_pri_id_records(
+@router.post("/bucket/id",description="We extract each record from MySQL, and use the record’s pri_id as the R2 object key. For every row, we serialize the row into JSON (JSON.stringify) and store it as a single JSON file in Cloudflare R2")
+async def create(
     start_range: int = Query(0, description="Start row (e.g., 0)"),
     end_range: int = Query(100000, description="End row (e.g., 100000)")
 ):
@@ -345,30 +370,8 @@ async def create_pri_id_records(
 #
 #     except Exception as e:
 #         return {"error": str(e)}
-@router.get("/list")
-def get_bucket_list(
-    bucket_name: str = Query("dev-transaction", title="Bucket Name",description="Bucket name (default: dev-transaction)"),
-    bucket_path: str = Query("pos_transactions", description="Folder path in R2 (default: pos_transactions)"),
-):
-    r2_client = get_r2_client()
-    prefix = f"{bucket_path}/"
 
-    try:
-        paginator = r2_client.get_paginator("list_objects_v2")
-        files = []
 
-        for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
-            if "Contents" in page:
-                for obj in page["Contents"]:
-                    files.append(obj["Key"])
-
-        return {
-            "total_files": len(files),
-            "files": files  # you can remove this if too large
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
 
 # @router.delete("/delete-files")
 # def delete_files(
@@ -410,7 +413,7 @@ def get_bucket_list(
 #     except Exception as e:
 #         return {"error": str(e)}
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
 # multithreading
 # @router.delete("/delete-files")
 # def delete_files(
@@ -458,130 +461,51 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 #     except Exception as e:
 #         return {"error": str(e)}
 
-@router.delete("/delete")
-def delete_bucket(
-    bucket_name: str = Query("dev-transaction"),
-    bucket_path: str = Query("pos_transactions"),
-    # action: str = Query("list", description="'list' or 'delete'"),
-    max_workers: int = Query(10, description="threads for delete"),
-):
+# @router.delete("/delete")
+# def delete_bucket(
+#     bucket_name: str = Query("dev-transaction"),
+#     bucket_path: str = Query("pos_transactions"),
+#     # action: str = Query("list", description="'list' or 'delete'"),
+#     max_workers: int = Query(10, description="threads for delete"),
+# ):
+#
+#     # if action not in ("list", "delete"):
+#     #     return {"error": "action must be 'list' or 'delete'"}
+#
+#     r2 = get_r2_client()
+#     prefix = f"{bucket_path}/"
+#
+#     paginator = r2.get_paginator("list_objects_v2")
+#     files = []
+#
+#     # collect full list
+#     for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+#         if "Contents" in page:
+#             for obj in page["Contents"]:
+#                 print(obj)
+#                 files.append(obj["Key"])
+#
+#     # if action == "list":
+#     #     return {
+#     #         "total_files": len(files),
+#     #         "files": files
+#     #     }
+#
+#     # DELETE MODE
+#     def delete_one(key:str):
+#         r2.delete_object(Bucket=bucket_name, Key=key)
+#         return key
+#
+#     deleted = []
+#     with ThreadPoolExecutor(max_workers=max_workers) as exe:
+#         futures = [exe.submit(delete_one, k) for k in files]
+#         for f in as_completed(futures):
+#             print(f.result())
+#             deleted.append(f.result())
+#
+#     return {
+#         "deleted_count": len(deleted),
+#         "deleted_keys": deleted
+#     }
 
-    # if action not in ("list", "delete"):
-    #     return {"error": "action must be 'list' or 'delete'"}
 
-    r2 = get_r2_client()
-    prefix = f"{bucket_path}/"
-
-    paginator = r2.get_paginator("list_objects_v2")
-    files = []
-
-    # collect full list
-    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
-        if "Contents" in page:
-            for obj in page["Contents"]:
-                print(obj)
-                files.append(obj["Key"])
-
-    # if action == "list":
-    #     return {
-    #         "total_files": len(files),
-    #         "files": files
-    #     }
-
-    # DELETE MODE
-    def delete_one(key:str):
-        r2.delete_object(Bucket=bucket_name, Key=key)
-        return key
-
-    deleted = []
-    with ThreadPoolExecutor(max_workers=max_workers) as exe:
-        futures = [exe.submit(delete_one, k) for k in files]
-        for f in as_completed(futures):
-            print(f.result())
-            deleted.append(f.result())
-
-    return {
-        "deleted_count": len(deleted),
-        "deleted_keys": deleted
-    }
-
-
-@router.post("/multipart/abort-all")
-def abort_all_multipart_uploads(bucket_name: str):
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=os.getenv("ENDPOINT"),
-        aws_access_key_id=os.getenv("ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY"),
-        config=Config(signature_version="s3v4"),
-    )
-
-    paginator = s3.get_paginator("list_multipart_uploads")
-
-    aborted = []
-    total = 0
-
-    for page in paginator.paginate(Bucket=bucket_name):
-
-        uploads = page.get("Uploads", [])
-        for u in uploads:
-            key = u["Key"]
-            upload_id = u["UploadId"]
-            s3.abort_multipart_upload(
-                Bucket=bucket_name,
-                Key=key,
-                UploadId=upload_id
-            )
-            total += 1
-            aborted.append({"key": key, "upload_id": upload_id})
-
-    return {
-        "bucket": bucket_name,
-        "aborted_uploads": total,
-        "details": aborted
-    }
-
-@router.delete("/multipart/abort-all")
-def abort_all_multipart_uploads(bucket_name: str):
-    s3 = boto3.client(
-        "s3",
-        endpoint_url=os.getenv("ENDPOINT"),
-        aws_access_key_id=os.getenv("ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY"),
-        config=Config(signature_version="s3v4"),
-    )
-
-    paginator = s3.get_paginator("list_multipart_uploads")
-
-    aborted = []
-    total = 0
-
-    for page in paginator.paginate(Bucket=bucket_name):
-        uploads = page.get("Uploads", [])
-        for u in uploads:
-            key = u["Key"]
-            upload_id = u["UploadId"]
-
-            # abort incomplete upload
-            s3.abort_multipart_upload(
-                Bucket=bucket_name,
-                Key=key,
-                UploadId=upload_id
-            )
-
-            # delete any partial object if exists
-            try:
-                s3.delete_object(Bucket=bucket_name, Key=key)
-            except:
-                print(f"Failed to delete key: {key}")
-                pass
-
-            total += 1
-            aborted.append({"key": key, "upload_id": upload_id})
-
-    return {
-        "bucket": bucket_name,
-        "aborted_uploads": total,
-        "status": "multipart aborted + objects deleted",
-        "details": aborted
-    }

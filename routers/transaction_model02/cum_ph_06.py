@@ -512,7 +512,7 @@ def process_chunk(chunk, arrow_schema):
 
 
 
-@router.post("data/insert")
+@router.post("/data/insert")
 def r2_catalog(
     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),

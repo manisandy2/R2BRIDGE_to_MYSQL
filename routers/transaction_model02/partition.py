@@ -5,7 +5,7 @@ from pyiceberg.transforms import IdentityTransform, YearTransform, MonthTransfor
 from pyiceberg.exceptions import NoSuchTableError, ValidationError
 from ...core.catalog_client import get_catalog_client
 
-router = APIRouter(prefix="/partition", tags=["Partition"])
+router = APIRouter(prefix="", tags=["Partition"])
 
 
 
@@ -29,7 +29,7 @@ def get_transform(transform: str, arg: int | None = None):
     else:
         raise ValueError(f"Unsupported transform: {transform}")
 
-@router.get("/partition/list")
+@router.get("/Partition/list")
 def list_partitions(
     namespace: str = Query("pos_transactions01", description="Namespace name"),
     table_name: str = Query("transaction01", description="Table name")
@@ -78,7 +78,7 @@ def list_partitions(
 
 
 # ✅ CREATE / ADD PARTITION SPEC
-@router.post("/partition/create")
+@router.post("/Partition/create")
 def create_partition(
     namespace: str = Query("pos_transactions01", description="Namespace"),
     table_name: str = Query("transaction01", description="Table name"),
@@ -114,8 +114,8 @@ def create_partition(
         raise HTTPException(status_code=500, detail=f"Partition create failed: {str(e)}")
 
 
-# 🔄 UPDATE PARTITION SPEC
-@router.put("/partition/update")
+
+@router.put("/Partition/update")
 def update_partition(
     namespace: str = Query("pos_transactions01", description="Namespace"),
     table_name: str = Query("transaction01", description="Table name"),
@@ -154,7 +154,7 @@ def update_partition(
 
 
 # ❌ DELETE PARTITION SPEC
-@router.delete("/partition/delete")
+@router.delete("/Partition/delete")
 def delete_partition(
     namespace: str = Query("pos_transactions01", description="Namespace"),
     table_name: str = Query("transaction01", description="Table name"),
