@@ -346,30 +346,30 @@ async def create(
         "errors": error_logs[:5],
     }
 
-# @router.get("/list")
-# def get_bucket_list(
-#     bucket_name: str = Query("dev-transaction", title="Bucket Name",description="Bucket name (default: dev-transaction)"),
-#     bucket_path: str = Query("pos_transactions", description="Folder path in R2 (default: pos_transactions)"),
-#
-# ):
-#     r2_client = get_r2_client()
-#     prefix = f"{bucket_path}/"
-#
-#     try:
-#         response = r2_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-#         # print(response)
-#
-#         files = []
-#         if "Contents" in response:
-#             files = [obj["Key"] for obj in response["Contents"]]
-#
-#         return {
-#             "total_files": len(files),
-#             "files": files
-#         }
-#
-#     except Exception as e:
-#         return {"error": str(e)}
+@router.get("/list")
+def get_bucket_list(
+    bucket_name: str = Query("dev-transaction", title="Bucket Name",description="Bucket name (default: dev-transaction)"),
+    bucket_path: str = Query("pos_transactions", description="Folder path in R2 (default: pos_transactions)"),
+
+):
+    r2_client = get_r2_client()
+    prefix = f"{bucket_path}/"
+
+    try:
+        response = r2_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+        # print(response)
+
+        files = []
+        if "Contents" in response:
+            files = [obj["Key"] for obj in response["Contents"]]
+
+        return {
+            "total_files": len(files),
+            "files": files
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
 
@@ -415,97 +415,97 @@ async def create(
 
 
 # multithreading
-# @router.delete("/delete-files")
-# def delete_files(
-#         bucket_name: str = Query(...),
-#         bucket_path: str = Query("pos_transactions"),
-#         prefix_only: bool = Query(True),
-#         file_name: str = Query(None),
-#         max_workers: int = Query(10, description="Number of threads (default 10)")
-# ):
-#
-#     r2_client = get_r2_client()
-#     prefix = f"{bucket_path}/"
-#     deleted_files = []
-#
-#     def delete_single(key: str):
-#         r2_client.delete_object(Bucket=bucket_name, Key=key)
-#         return key
-#
-#     try:
-#         if prefix_only:
-#             response = r2_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
-#
-#             if "Contents" in response:
-#                 keys = [obj["Key"] for obj in response["Contents"]]
-#
-#                 # MULTI-THREAD DELETE
-#                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
-#                     futures = [executor.submit(delete_single, k) for k in keys]
-#                     for f in as_completed(futures):
-#                         print(f.result())
-#                         deleted_files.append(f.result())
-#
-#         else:
-#             if not file_name:
-#                 return {"error": "file_name is required if prefix_only=False"}
-#             file_key = prefix + file_name
-#             delete_single(file_key)
-#             deleted_files.append(file_key)
-#
-#         return {
-#             "message": f"{len(deleted_files)} file(s) deleted",
-#             "deleted_files": deleted_files
-#         }
-#
-#     except Exception as e:
-#         return {"error": str(e)}
+@router.delete("/delete-files")
+def delete_files(
+        bucket_name: str = Query(...),
+        bucket_path: str = Query("pos_transactions"),
+        prefix_only: bool = Query(True),
+        file_name: str = Query(None),
+        max_workers: int = Query(10, description="Number of threads (default 10)")
+):
 
-# @router.delete("/delete")
-# def delete_bucket(
-#     bucket_name: str = Query("dev-transaction"),
-#     bucket_path: str = Query("pos_transactions"),
-#     # action: str = Query("list", description="'list' or 'delete'"),
-#     max_workers: int = Query(10, description="threads for delete"),
-# ):
-#
-#     # if action not in ("list", "delete"):
-#     #     return {"error": "action must be 'list' or 'delete'"}
-#
-#     r2 = get_r2_client()
-#     prefix = f"{bucket_path}/"
-#
-#     paginator = r2.get_paginator("list_objects_v2")
-#     files = []
-#
-#     # collect full list
-#     for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
-#         if "Contents" in page:
-#             for obj in page["Contents"]:
-#                 print(obj)
-#                 files.append(obj["Key"])
-#
-#     # if action == "list":
-#     #     return {
-#     #         "total_files": len(files),
-#     #         "files": files
-#     #     }
-#
-#     # DELETE MODE
-#     def delete_one(key:str):
-#         r2.delete_object(Bucket=bucket_name, Key=key)
-#         return key
-#
-#     deleted = []
-#     with ThreadPoolExecutor(max_workers=max_workers) as exe:
-#         futures = [exe.submit(delete_one, k) for k in files]
-#         for f in as_completed(futures):
-#             print(f.result())
-#             deleted.append(f.result())
-#
-#     return {
-#         "deleted_count": len(deleted),
-#         "deleted_keys": deleted
-#     }
+    r2_client = get_r2_client()
+    prefix = f"{bucket_path}/"
+    deleted_files = []
+
+    def delete_single(key: str):
+        r2_client.delete_object(Bucket=bucket_name, Key=key)
+        return key
+
+    try:
+        if prefix_only:
+            response = r2_client.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+
+            if "Contents" in response:
+                keys = [obj["Key"] for obj in response["Contents"]]
+
+                # MULTI-THREAD DELETE
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    futures = [executor.submit(delete_single, k) for k in keys]
+                    for f in as_completed(futures):
+                        print(f.result())
+                        deleted_files.append(f.result())
+
+        else:
+            if not file_name:
+                return {"error": "file_name is required if prefix_only=False"}
+            file_key = prefix + file_name
+            delete_single(file_key)
+            deleted_files.append(file_key)
+
+        return {
+            "message": f"{len(deleted_files)} file(s) deleted",
+            "deleted_files": deleted_files
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+@router.delete("/delete")
+def delete_bucket(
+    bucket_name: str = Query("dev-transaction"),
+    bucket_path: str = Query("pos_transactions"),
+    # action: str = Query("list", description="'list' or 'delete'"),
+    max_workers: int = Query(10, description="threads for delete"),
+):
+
+    # if action not in ("list", "delete"):
+    #     return {"error": "action must be 'list' or 'delete'"}
+
+    r2 = get_r2_client()
+    prefix = f"{bucket_path}/"
+
+    paginator = r2.get_paginator("list_objects_v2")
+    files = []
+
+    # collect full list
+    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
+        if "Contents" in page:
+            for obj in page["Contents"]:
+                print(obj)
+                files.append(obj["Key"])
+
+    # if action == "list":
+    #     return {
+    #         "total_files": len(files),
+    #         "files": files
+    #     }
+
+    # DELETE MODE
+    def delete_one(key:str):
+        r2.delete_object(Bucket=bucket_name, Key=key)
+        return key
+
+    deleted = []
+    with ThreadPoolExecutor(max_workers=max_workers) as exe:
+        futures = [exe.submit(delete_one, k) for k in files]
+        for f in as_completed(futures):
+            print(f.result())
+            deleted.append(f.result())
+
+    return {
+        "deleted_count": len(deleted),
+        "deleted_keys": deleted
+    }
 
 

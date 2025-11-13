@@ -60,11 +60,16 @@ def read_parquet(path: str = Query(..., description="Full s3:// R2 parquet path"
             endpoint_override=os.getenv("ENDPOINT"),
         )
 
+        # ✅ Normalize path for PyArrow: remove s3:// prefix
+        if path.startswith("s3://"):
+            path = path.replace("s3://", "", 1)
+
         # read
         table = pq.read_table(path, filesystem=s3fs)
         df = table.to_pandas().head(limit)
 
         return {
+            "status": "success",
             "path": path,
             "row_count_file": table.num_rows,
             "sample_rows": df.to_dict(orient="records")

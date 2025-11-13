@@ -4,6 +4,9 @@ from ...core.catalog_client import get_catalog_client
 from pyiceberg.schema import Schema
 # from core.catalog_client import security,verify_jwt
 # from fastapi.security import HTTPAuthorizationCredentials
+from pyiceberg.partitioning import PartitionSpec,PartitionField
+from pyiceberg.transforms import YearTransform,MonthTransform
+
 from pyiceberg.types import *
 from pyiceberg.catalog import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError,NoSuchTableError
 
@@ -29,11 +32,11 @@ def get_tables(
 
 @router.post("/table/create")
 def create_transaction(
-        namespace: str = Query("pos_transactions"),
-        table_name: str = Query(..., description="Table name"),
+        # namespace: str = Query("pos_transactions"),
+        # table_name: str = Query(..., description="Table name"),
 ):
-    # namespace = "pos_transactions_add_range"
-    # table_name = "transaction_with_in_partition"
+    namespace = "pos_transactions"
+    table_name = "transaction"
     # table_name = "iceberg_add_range_test"
     table_identifier = f"{namespace}.{table_name}"
 
@@ -57,17 +60,19 @@ def create_transaction(
         NestedField(16, "CreatedDate", DateType()),
     )
 
-
+    # print(transaction_schema.find_field("Bill_Date__c").field_id+1)
     # Step 2: Define partition spec
-    # transaction_partition_spec = PartitionSpec(
-    #     PartitionField(
-    #         source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-    #         field_id=2001,
-    #         transform=YearTransform(),
-    #         name="year",
-    #     ),
-    #
-    # )
+    transaction_partition_spec = PartitionSpec(
+        PartitionField(
+            source_id=transaction_schema.find_field("Bill_Date__c").field_id,
+            field_id=2001,
+            transform=YearTransform(),
+            name="year",
+        ),
+
+
+
+    )
 
     # Step 3: Connect to catalog
     catalog = get_catalog_client()
@@ -85,17 +90,16 @@ def create_transaction(
         tbl = catalog.create_table(
             identifier=table_identifier,
             schema=transaction_schema,
-            # partition_spec=transaction_partition_spec,
+            partition_spec=transaction_partition_spec,
             properties={
                 "format-version": "2",  # <-- mandatory
                 "table-type": "MERGE_ON_READ",  # <-- enable merge-on-read
-                "primary-key": "pri_id",        # <-- enforce PK
                 "identifier-field-ids": "1",
                 "write.format.default": "parquet",
                 "write.parquet.compression-codec": "zstd",
-                "write.partition.path-style": "directory",
-                "write.sort.order": "customer_mobile__c ASC, Bill_Date__c ASC",
-                # write.sort.order": "month(Bill_Date__c) ASC, customer_mobile__c ASC, Bill_Date__c ASC"
+                "write.partition.path-style": "hierarchical",   # hierarchical & directory
+                "write.sort.order": "month(Bill_Date__c) ASC, customerId,customer_mobile__c",
+                # "write.sort.order": "customerId,customer_mobile__c",
                 "write.target-file-size-bytes": "268435456"
             },
         )

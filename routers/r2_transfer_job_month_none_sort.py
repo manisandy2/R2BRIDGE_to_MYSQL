@@ -17,11 +17,12 @@ from datetime import datetime
 # ------------------ CONFIGURATION ------------------
 
 
-API_URL = "http://127.0.0.1:8000/insert-ph-direct-data"  # FastAPI endpoint
+API_URL = "http://127.0.0.1:8001/data/insert/month-none-sort"  # FastAPI endpoint
 
 BATCH_SIZE = 100000
-START_ROWS = 9700000
-TOTAL_ROWS = 10500000
+START_ROWS = 0
+# TOTAL_ROWS = 10000000
+TOTAL_ROWS = 10000000
 
 MAX_RETRIES = 3
 SLEEP_BETWEEN_BATCHES = 2

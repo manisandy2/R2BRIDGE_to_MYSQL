@@ -243,3 +243,168 @@ def filter_id(
         "sample_rows": df.head(10).to_dict(orient="records"),
         "timeline_seconds": total_time
     }
+
+# @router.get("/filters/get-multi")
+# def filter_customer_phone_multi(
+#     namespaces: list[str] = Query(["pos_transactions01", "pos_transactions02", "pos_transactions03", "pos_transactions04"], description="List of Iceberg namespaces"),
+#     table_names: list[str] = Query(["transaction01", "transaction02", "transaction03", "transaction04"], description="List of Iceberg table names (same order as namespaces)"),
+#     customer_mobile: str | None = Query(None, description="Filter by customer_mobile__c"),
+# ):
+#     """
+#     Fetch records from multiple Iceberg tables (across namespaces)
+#     using a single filter condition (e.g., customer_mobile__c).
+#     Returns individual table metrics + total execution summary.
+#     """
+#
+#     import time
+#     import pandas as pd
+#     from pyiceberg.expressions import EqualTo
+#     from fastapi import HTTPException
+#
+#     catalog = get_catalog_client()
+#     all_results = []
+#     total_start = time.perf_counter()
+#
+#     # --- Iterate over all namespace-table pairs ---
+#     for idx, (ns, tbl_name) in enumerate(zip(namespaces, table_names)):
+#         table_identifier = f"{ns}.{tbl_name}"
+#         start_time = time.perf_counter()
+#
+#         try:
+#             tbl = catalog.load_table(table_identifier)
+#         except Exception as e:
+#             all_results.append({
+#                 "namespace": ns,
+#                 "table_name": tbl_name,
+#                 "error": str(e),
+#                 "count": 0,
+#                 "timeline_seconds": 0
+#             })
+#             continue
+#
+#         # Build filter condition
+#         expr = None
+#         if customer_mobile:
+#             try:
+#                 expr = EqualTo("customer_mobile__c", int(customer_mobile))
+#             except Exception as e:
+#                 raise HTTPException(status_code=400, detail=f"Invalid filter value: {str(e)}")
+#
+#         # Perform scan
+#         try:
+#             scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
+#             df = scan.to_arrow().to_pandas()
+#         except Exception as e:
+#             all_results.append({
+#                 "namespace": ns,
+#                 "table_name": tbl_name,
+#                 "error": f"Error reading table: {str(e)}",
+#                 "count": 0,
+#                 "timeline_seconds": 0
+#             })
+#             continue
+#
+#         # Measure timing
+#         timeline = round(time.perf_counter() - start_time, 3)
+#
+#         all_results.append({
+#             "namespace": ns,
+#             "table_name": tbl_name,
+#             "record_count": len(df),
+#             "timeline_seconds": timeline,
+#             "sample_rows": df.head(3).to_dict(orient="records"),
+#         })
+#
+#     total_time = round(time.perf_counter() - total_start, 3)
+#
+#     # Combine results
+#     summary = {
+#         "total_namespaces": len(namespaces),
+#         "total_tables": len(table_names),
+#         "total_execution_time": total_time,
+#         "details": all_results
+#     }
+#
+#     return summary
+
+def process_table(namespace: str, table_name: str, customer_mobile: str | None):
+    """Worker function for each table query (runs in parallel threads)."""
+    start_time = time.perf_counter()
+    catalog = get_catalog_client()
+    table_identifier = f"{namespace}.{table_name}"
+
+    result = {
+        "namespace": namespace,
+        "table_name": table_name,
+        "record_count": 0,
+        "timeline_seconds": 0,
+        "sample_rows": [],
+        "error": None
+    }
+
+    try:
+        tbl = catalog.load_table(table_identifier)
+    except NoSuchTableError:
+        result["error"] = f"Table not found: {table_identifier}"
+        return result
+    except Exception as e:
+        result["error"] = f"Error loading table: {str(e)}"
+        return result
+
+    # 🔸 Build filter condition
+    expr = None
+    if customer_mobile:
+        try:
+            expr = EqualTo("customer_mobile__c", int(customer_mobile))
+        except Exception as e:
+            result["error"] = f"Invalid filter value: {str(e)}"
+            return result
+
+    # 🔸 Perform table scan
+    try:
+        scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
+        df = scan.to_arrow().to_pandas()
+        result["record_count"] = len(df)
+        result["sample_rows"] = df.head(3).to_dict(orient="records")
+    except Exception as e:
+        result["error"] = f"Error reading table: {str(e)}"
+        return result
+
+    result["timeline_seconds"] = round(time.perf_counter() - start_time, 3)
+    return result
+
+@router.get("/filters/get-multi")
+def filter_customer_phone_multi(
+    namespaces: list[str] = Query(["pos_transactions01", "pos_transactions02", "pos_transactions03", "pos_transactions04"], description="List of Iceberg namespaces"),
+    table_names: list[str] = Query(["transaction01", "transaction02", "transaction03", "transaction04"], description="List of Iceberg table names (same order as namespaces)"),
+    customer_mobile: str | None = Query(None, description="Filter by customer_mobile__c"),
+    max_threads: int = Query(4, description="Maximum number of parallel threads"),
+):
+    """
+    Multithreaded filter across multiple Iceberg namespaces and tables.
+    Executes all queries concurrently and returns per-table metrics.
+    """
+
+    total_start = time.perf_counter()
+    all_results = []
+
+    # --- Use ThreadPoolExecutor for parallel querying ---
+    with ThreadPoolExecutor(max_workers=max_threads) as executor:
+        futures = [
+            executor.submit(process_table, ns, tbl_name, customer_mobile)
+            for ns, tbl_name in zip(namespaces, table_names)
+        ]
+
+        # Collect completed results
+        for future in as_completed(futures):
+            all_results.append(future.result())
+
+    total_time = round(time.perf_counter() - total_start, 3)
+
+    return {
+        "total_namespaces": len(namespaces),
+        "total_tables": len(table_names),
+        "thread_count": max_threads,
+        "total_execution_time": total_time,
+        "details": all_results
+    }
