@@ -8,9 +8,6 @@ import time, json, boto3, os
 import os
 from ...core.r2_client import get_r2_client
 from concurrent.futures import ThreadPoolExecutor, as_completed
-MAX_WORKERS = 16
-import concurrent.futures
-import math
 
 router = APIRouter(prefix="", tags=["bucket store"])
 
@@ -248,7 +245,9 @@ def get_list(
 #         "r2_key_pattern": "batches/batch_<index>.json"
 #     }
 
-
+MAX_WORKERS = 16
+import concurrent.futures
+import math
 
 
 @router.post("/bucket/id",description="We extract each record from MySQL, and use the record’s pri_id as the R2 object key. For every row, we serialize the row into JSON (JSON.stringify) and store it as a single JSON file in Cloudflare R2")

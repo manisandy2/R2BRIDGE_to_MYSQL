@@ -1,8 +1,27 @@
-from pyiceberg.catalog import NoSuchTableError
+from fastapi import APIRouter, HTTPException
+import duckdb
+from pyarrow.dataset import partitioning
+from fastapi.encoders import jsonable_encoder
+from ...mysql_creds import *
+from pyiceberg.schema import Schema
+from pyiceberg.types import *
+from botocore.client import Config
+import botocore
+import boto3
+from pyiceberg.partitioning import PartitionSpec
+from pyiceberg.catalog import load_catalog
+from pyiceberg.partitioning import PartitionSpec, PartitionField
+from pyiceberg.transforms import IdentityTransform,YearTransform,MonthTransform,DayTransform,BucketTransform,VoidTransform
+from pyiceberg.catalog import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError,NoSuchTableError
 from ...core.catalog_client import get_catalog_client
+import traceback
+import pyarrow as pa
+from datetime import datetime, date
 from fastapi import APIRouter,HTTPException,Query
 from pyiceberg.expressions import And, EqualTo
+
 import time
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 router = APIRouter(prefix="", tags=["filters"])
@@ -60,6 +79,20 @@ def filter_customer_phone(
         "timeline_seconds": timeline
     }
 
+# @router.get("/filters/get")
+# def filter_customer_phones_mysql(
+#         namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
+#         table_name: str = Query("transaction01", description="Iceberg table name"),
+#         phone: str = Query(None, description="Filter by customer_mobile__c"),
+# ):
+#     start_time = time.perf_counter()
+#     table_identifier = f"{namespace}.{table_name}"
+#     f"""
+#
+#     SELECT * FROM transactions
+#     WHERE customer_mobile__c = {phone};
+#     """
+#     return
 
 @router.get("/filters/get")
 def filter_customer_phones_mysql(
@@ -72,6 +105,8 @@ def filter_customer_phones_mysql(
 
     # Iceberg table identifier
     table_identifier = f"{namespace}.{table_name}"
+
+
 
     catalog = get_catalog_client()
 
@@ -237,8 +272,9 @@ def filter_id(
     namespace: str = Query("pos_transactions"),
     table_name: str = Query("iceberg_with_partitioning"),
     pri_id: str = Query(default=None),
-
+    # phone: str = Query(default=None),
 ):
+    from pyiceberg.expressions import And, GreaterThanOrEqual, LessThanOrEqual
 
     start_time = time.perf_counter()
     table_identifier = f"{namespace}.{table_name}"

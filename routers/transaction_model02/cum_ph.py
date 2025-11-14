@@ -1,29 +1,37 @@
-from fastapi import APIRouter, HTTPException
-import duckdb
-from pyarrow.dataset import partitioning
-
 from ...mysql_creds import *
 from pyiceberg.schema import Schema
 from pyiceberg.types import *
-from pyiceberg.partitioning import PartitionSpec
-from pyiceberg.catalog import load_catalog
-from pyiceberg.partitioning import PartitionSpec, PartitionField
-from pyiceberg.transforms import IdentityTransform,YearTransform,MonthTransform,DayTransform,BucketTransform,VoidTransform
+from botocore.client import Config
+import boto3
 from pyiceberg.catalog import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError,NoSuchTableError
 from ...core.catalog_client import get_catalog_client
 import traceback
 import pyarrow as pa
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, date
 from fastapi import APIRouter,HTTPException,Query
+from dateutil import parser
+from datetime import datetime
 
 import time
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
+s3 = boto3.client("s3")
+
+
 
 LOGS_FOLDER = "logs/iceberg_upload"
 os.makedirs(LOGS_FOLDER, exist_ok=True)
 
-router = APIRouter(prefix="", tags=["Transaction version01"])
+router = APIRouter(prefix="", tags=["insert"])
+
+s3 = boto3.client(
+    "s3",
+    endpoint_url=os.getenv("ENDPOINT"),
+    aws_access_key_id=os.getenv("ACCESS_KEY_ID"),
+    aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY"),
+    config=Config(signature_version="s3v4"),
+    region_name="auto"
+)
 
 type_mapping = {
     "int": LongType(),
@@ -60,8 +68,6 @@ arrow_mapping = {
     # 'decimal': lambda p=18, s=6: pa.decimal128(p, s)
     'decimal' : pa.decimal128(18, 6)
 }
-
-
 
 def infer_schema_from_record(record: dict):
     iceberg_fields = []
@@ -106,1225 +112,237 @@ def infer_schema_from_record(record: dict):
     arrow_schema = pa.schema(arrow_fields)
     return iceberg_schema, arrow_schema
 
-# def convert_column(row: dict, arrow_schema: pa.Schema) -> dict:
-#     converted = {}
-#
-#     for field in arrow_schema:
-#         name = field.name
-#         dtype = field.type
-#         val = row.get(name)
-#         print("name", name, "dtype", dtype, "val", val)
-#         # Handle None / Empty
-#         if val in (None, "", "NULL"):
-#             converted[name] = None
-#             continue
-#
-#         # ---- Type-based Conversion ----
-#         try:
-#             # Integer
-#             if pa.types.is_integer(dtype):
-#                 converted[name] = int(val)
-#
-#             # Floating point
-#             elif pa.types.is_floating(dtype):
-#                 converted[name] = float(val)
-#
-#             # Boolean
-#             elif pa.types.is_boolean(dtype):
-#                 converted[name] = str(val).lower() in ("true", "1", "yes")
-#
-#             # Timestamp / Date
-#             # elif pa.types.is_timestamp(dtype) or "date" in name.lower():
-#             #     if isinstance(val, str):
-#             #         val = datetime.fromisoformat(val[:19]) if len(val) >= 10 else None
-#             #     if isinstance(val, datetime):
-#             #         converted[name] = val.strftime("%Y-%m-%d %H:%M:%S")
-#             #
-#             #     else:
-#             #         converted[name] = None
-#                 # --- Date / Timestamp handling ---
-#             elif pa.types.is_date(dtype) or pa.types.is_timestamp(dtype) or "date" in name.lower():
-#                 # Case 1: Already a datetime/date object
-#                 if isinstance(val, datetime):
-#                     # Keep as datetime for timestamp64, or convert to date for date32
-#                     if pa.types.is_timestamp(dtype):
-#                         converted[name] = val
-#                     else:
-#                         converted[name] = val.date()
-#
-#                 elif isinstance(val, date):
-#                     converted[name] = val
-#
-#                 # Case 2: String values from MySQL or CSV
-#                 elif isinstance(val, str):
-#                     val = val.strip()
-#                     try:
-#                         if " " in val:
-#                             dt = datetime.strptime(val, "%Y-%m-%d %H:%M:%S")
-#                         else:
-#                             dt = datetime.strptime(val, "%Y-%m-%d")
-#
-#                         if pa.types.is_timestamp(dtype):
-#                             converted[name] = dt
-#                         else:
-#                             converted[name] = dt.date()
-#                     except ValueError:
-#                         converted[name] = None
-#                 else:
-#                     converted[name] = None
-#
-#             # String / Bytes
-#             elif pa.types.is_string(dtype):
-#                 converted[name] = str(val)
-#
-#             else:
-#                 converted[name] = str(val)
-#
-#         except Exception as e:
-#             # print("Failed to convert column", row)
-#             #
-#             print("name", name, "dtype", dtype, "val", val ,{e})
-#             converted[name] = None
-#
-#     return converted
 
-# @router.post("/with_out_partition")
-# ###########################################################################
-# # with Out Partition
-# def create_transaction():
-#     namespace = "pos_transactions01"
-#     table_name = "transaction_with_out"
-#
-#
-#     table_identifier = f"{namespace}.{table_name}"
-#     transaction_schema = Schema(
-#         NestedField(1, "pri_id", LongType()),
-#         NestedField(2, "store_code__c", StringType()),
-#         NestedField(3, "Branch_Name__c", StringType()),
-#         NestedField(4, "customer_mobile__c", StringType()),
-#         NestedField(5, "Customer_Name__c", StringType()),
-#         NestedField(6, "Bill_No__c", StringType()),
-#         NestedField(7, "Bill_Date__c", DateType()),
-#         NestedField(8, "Invoice_Date__c", StringType()),
-#         NestedField(9, "Invoice_Amount__c", DoubleType()),
-#         NestedField(10, "bill_status__c", StringType()),
-#         NestedField(11, "bill_transaction_no__c", StringType()),
-#         NestedField(12, "Item_Code__c", StringType()),
-#         NestedField(13, "Item_Name__c", StringType()),
-#         NestedField(14, "bill_tax__c", StringType()),
-#         NestedField(15, "bill_grand_total__c", StringType()),
-#         NestedField(16, "CreatedDate", DateType()),
-#     )
-#
-#
-#     catalog = get_catalog_client()
-#
-#     try:
-#         catalog.load_namespace_properties(namespace)
-#     except NoSuchNamespaceError:
-#         catalog.create_namespace(namespace)
-#     except NamespaceAlreadyExistsError:
-#         pass
-#
-#     try:
-#         tbl = catalog.create_table(
-#             identifier=table_identifier,
-#             schema=transaction_schema,
-#             # partition_spec=transaction_partition_spec,
-#             properties={
-#                 # "write.format.default": "parquet",
-#                 # "write.parquet.compression-codec": "zstd",
-#                 "write.partition.path-style": "directory",
-#             },
-#         )
-#         print(f"✅ Created Iceberg table: {table_identifier}")
-#
-#         # Step 6: Return confirmation
-#         return {
-#             "status": "created",
-#             "table": table_identifier,
-#             "schema_fields": [f.name for f in transaction_schema.fields],
-#             # "partitions": [f.name for f in transaction_partition_spec.fields],
-#         }
-#
-#     except TableAlreadyExistsError:
-#         return {"status": "exists", "table": table_identifier}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
-#
-# # with partitioning
-# @router.post("/with_in_partition")
-# def create_transaction_phone_table():
-#     namespace = "pos_transactions01"
-#     table_name = "transaction_with_in"
-#     table_identifier = f"{namespace}.{table_name}"
-#
-#     transaction_schema = Schema(
-#         NestedField(1, "pri_id", LongType()),
-#         NestedField(2, "store_code__c", StringType()),
-#         NestedField(3, "Branch_Name__c", StringType()),
-#         NestedField(4, "customer_mobile__c", StringType()),
-#         NestedField(5, "Customer_Name__c", StringType()),
-#         NestedField(6, "Bill_No__c", StringType()),
-#         NestedField(7, "Bill_Date__c", DateType()),
-#         NestedField(8, "Invoice_Date__c", StringType()),
-#         NestedField(9, "Invoice_Amount__c", DoubleType()),
-#         NestedField(10, "bill_status__c", StringType()),
-#         NestedField(11, "bill_transaction_no__c", StringType()),
-#         NestedField(12, "Item_Code__c", StringType()),
-#         NestedField(13, "Item_Name__c", StringType()),
-#         NestedField(14, "bill_tax__c", StringType()),
-#         NestedField(15, "bill_grand_total__c", StringType()),
-#         NestedField(16, "CreatedDate", DateType()),
-#     )
-#
-#
-#
-#     transaction_partition_spec = PartitionSpec(
-#             PartitionField(
-#                 source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-#                 field_id=2001,
-#                 transform=YearTransform(),
-#                 name="day"
-#             ),
-#             PartitionField(
-#                 source_id=transaction_schema.find_field("store_code__c").field_id,
-#                 field_id=2003,
-#                 transform=BucketTransform(32),
-#                 name="store_bucket"
-#             ),
-#             PartitionField(
-#                 source_id=transaction_schema.find_field("customer_mobile__c").field_id,
-#                 field_id=2004,
-#                 transform=IdentityTransform(),
-#                 name="customer_mobile"
-#             )
-#         )
-#
-#
-#
-#     catalog = get_catalog_client()
-#
-#     try:
-#         catalog.load_namespace_properties(namespace)
-#     except NoSuchNamespaceError:
-#         catalog.create_namespace(namespace)
-#     except NamespaceAlreadyExistsError:
-#         pass
-#
-#     try:
-#         tbl = catalog.create_table(
-#             identifier=table_identifier,
-#             schema=transaction_schema,
-#             partition_spec=transaction_partition_spec,
-#             properties={
-#                 # "write.format.default": "parquet",
-#                 # "write.parquet.compression-codec": "zstd",
-#                 "write.partition.path-style": "directory",
-#             },
-#         )
-#         print(f"✅ Created Iceberg table: {table_identifier}")
-#
-#         # Step 6: Return confirmation
-#         return {
-#             "status": "created",
-#             "table": table_identifier,
-#             "schema_fields": [f.name for f in transaction_schema.fields],
-#             # "partitions": [f.name for f in transaction_partition_spec.fields],
-#         }
-#
-#     except TableAlreadyExistsError:
-#         return {"status": "exists", "table": table_identifier}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
-
-# type Change
-##########################################################################
-@router.post("/manual-create-ph-table")
-def create_transaction():
-    """
-    Create a predefined Iceberg table for transaction phone data
-    with a static schema and partition spec.
-    """
-    namespace = "pos_transactions01"
-    table_name = "transaction01"
-    table_identifier = f"{namespace}.{table_name}"
-
-    # Step 1: Define Iceberg schema
-    transaction_schema = Schema(
-        NestedField(1,"pri_id",LongType(),required=True),
-        NestedField(2, "store_code__c", StringType()),
-        NestedField(3, "Branch_Name__c", StringType()),
-        NestedField(4, "customer_mobile__c", LongType()),
-        NestedField(5, "Customer_Name__c", StringType()),
-        NestedField(6, "Bill_No__c", StringType()),
-        NestedField(7, "Bill_Date__c", TimestampType()),
-        NestedField(8, "Invoice_Date__c", TimestampType()),
-        NestedField(9, "Invoice_Amount__c", DoubleType()),
-        NestedField(10, "bill_status__c", StringType()),
-        NestedField(11, "bill_transaction_no__c", StringType()),
-        NestedField(12, "Item_Code__c", LongType()),
-        NestedField(13, "Item_Name__c", StringType()),
-        NestedField(14, "bill_tax__c", DoubleType()),
-        NestedField(15, "bill_grand_total__c", DoubleType()),
-        NestedField(16, "CreatedDate", TimestampType()),
-    )
-
-
-
-    # Step 2: Define partition spec
-    transaction_partition_spec = PartitionSpec(
-        PartitionField(
-            source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-            field_id=2001,
-            transform=DayTransform(),
-            name="day",
-        ),
-
-        PartitionField(
-            source_id=transaction_schema.find_field("store_code__c").field_id,
-            field_id=2002,
-            transform=BucketTransform(32),
-            name="store_bucket",
-        ),
-        PartitionField(
-            source_id=transaction_schema.find_field("customer_mobile__c").field_id,
-            field_id=2004,
-            transform=IdentityTransform(),
-            name="customer_mobile",
-        ),
-    )
-
-    # Step 3: Connect to catalog
-    catalog = get_catalog_client()
-
-    # Step 4: Ensure namespace exists
-    try:
-        catalog.load_namespace_properties(namespace)
-    except NoSuchNamespaceError:
-        catalog.create_namespace(namespace)
-    except NamespaceAlreadyExistsError:
-        pass
-
-    # Step 5: Create table
-    try:
-        tbl = catalog.create_table(
-            identifier=table_identifier,
-            schema=transaction_schema,
-            partition_spec=transaction_partition_spec,
-            properties={
-                "write.format.default": "parquet",
-                "write.parquet.compression-codec": "zstd",
-                "write.partition.path-style": "directory",
-            },
-        )
-        print(f"✅ Created Iceberg table: {table_identifier}")
-
-        # Step 6: Return confirmation
-        return {
-            "status": "created",
-            "table": table_identifier,
-            "schema_fields": [f.name for f in transaction_schema.fields],
-            "partitions": [f.name for f in transaction_partition_spec.fields],
-        }
-
-    except TableAlreadyExistsError:
-        return {"status": "exists", "table": table_identifier}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
-
-
-# ##########################################################################
-# @router.post("/manual-create-ph-table")
-# def create_transaction():
-#     """
-#     Create a predefined Iceberg table for transaction phone data
-#     with a static schema and partition spec.
-#     """
-#     namespace = "pos_transactions01"
-#     table_name = "transaction01"
-#     table_identifier = f"{namespace}.{table_name}"
-#
-#     # Step 1: Define Iceberg schema
-#     transaction_schema = Schema(
-#         NestedField(1,"pri_id",LongType(),required=True),
-#         NestedField(2, "store_code__c", StringType()),
-#         NestedField(3, "Branch_Name__c", StringType()),
-#         NestedField(4, "customer_mobile__c", StringType()),
-#         NestedField(5, "Customer_Name__c", StringType()),
-#         NestedField(6, "Bill_No__c", StringType()),
-#         NestedField(7, "Bill_Date__c", StringType()),
-#         NestedField(8, "Invoice_Date__c", StringType()),
-#         NestedField(9, "Invoice_Amount__c", DoubleType()),
-#         NestedField(10, "bill_status__c", StringType()),
-#         NestedField(11, "bill_transaction_no__c", StringType()),
-#         NestedField(12, "Item_Code__c", StringType()),
-#         NestedField(13, "Item_Name__c", StringType()),
-#         NestedField(14, "bill_tax__c", StringType()),
-#         NestedField(15, "bill_grand_total__c", StringType()),
-#         NestedField(16, "CreatedDate", StringType()),
-#     )
-#
-#
-#
-#     # Step 2: Define partition spec
-#     transaction_partition_spec = PartitionSpec(
-#         PartitionField(
-#             source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-#             field_id=2001,
-#             transform=DayTransform(),
-#             name="day",
-#         ),
-#
-#         PartitionField(
-#             source_id=transaction_schema.find_field("store_code__c").field_id,
-#             field_id=2002,
-#             transform=BucketTransform(32),
-#             name="store_bucket",
-#         ),
-#         PartitionField(
-#             source_id=transaction_schema.find_field("customer_mobile__c").field_id,
-#             field_id=2004,
-#             transform=IdentityTransform(),
-#             name="customer_mobile",
-#         ),
-#     )
-#
-#     # Step 3: Connect to catalog
-#     catalog = get_catalog_client()
-#
-#     # Step 4: Ensure namespace exists
-#     try:
-#         catalog.load_namespace_properties(namespace)
-#     except NoSuchNamespaceError:
-#         catalog.create_namespace(namespace)
-#     except NamespaceAlreadyExistsError:
-#         pass
-#
-#     # Step 5: Create table
-#     try:
-#         tbl = catalog.create_table(
-#             identifier=table_identifier,
-#             schema=transaction_schema,
-#             partition_spec=transaction_partition_spec,
-#             properties={
-#                 "write.format.default": "parquet",
-#                 "write.parquet.compression-codec": "zstd",
-#                 "write.partition.path-style": "directory",
-#             },
-#         )
-#         print(f"✅ Created Iceberg table: {table_identifier}")
-#
-#         # Step 6: Return confirmation
-#         return {
-#             "status": "created",
-#             "table": table_identifier,
-#             "schema_fields": [f.name for f in transaction_schema.fields],
-#             "partitions": [f.name for f in transaction_partition_spec.fields],
-#         }
-#
-#     except TableAlreadyExistsError:
-#         return {"status": "exists", "table": table_identifier}
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
-
-
-DUCKDB_PATH = "data/pos_transactions.duckdb"  # You can customize the DB path
-
-@router.post("/duckdb-create-ph-table")
-def create_transaction_duckdb():
-    """
-    Create a predefined DuckDB table for transaction phone data
-    with a static schema and partition-like columns.
-    """
-    namespace = "pos_transactions01"
-    table_name = "transaction_duckdb"
-    full_table_name = f"{namespace}_{table_name}"
-
-    # Ensure data folder exists
-    os.makedirs("data", exist_ok=True)
-
-    try:
-        # Step 1: Connect to DuckDB
-        conn = duckdb.connect(DUCKDB_PATH)
-
-        # Step 2: Create schema (namespace) if not exists
-        conn.execute(f"CREATE SCHEMA IF NOT EXISTS {namespace};")
-
-        # Step 3: Define table schema
-        create_table_query = f"""
-        CREATE TABLE IF NOT EXISTS {namespace}.{table_name} (
-            Bill_No__c TEXT,
-            Bill_Date__c DATE,
-            store_code__c TEXT,
-            customer_mobile__c TEXT,
-            Item_Code__c TEXT,
-            Invoice_Amount__c DOUBLE,
-            bill_tax__c DOUBLE,
-            bill_grand_total__c DOUBLE,
-            CreatedDate TIMESTAMP,
-            -- partition-like columns
-            day INTEGER GENERATED ALWAYS AS (EXTRACT(DAY FROM Bill_Date__c)) STORED,
-            store_bucket INTEGER GENERATED ALWAYS AS (MOD(abs(hash(store_code__c)), 32)) STORED,
-            customer_mobile TEXT
-        );
-        """
-        conn.execute(create_table_query)
-        conn.close()
-
-        print(f"✅ Created DuckDB table: {namespace}.{table_name}")
-
-        # Step 4: Return confirmation
-        return {
-            "status": "created",
-            "database": DUCKDB_PATH,
-            "table": f"{namespace}.{table_name}",
-            "schema_fields": [
-                "Bill_No__c",
-                "Bill_Date__c",
-                "store_code__c",
-                "customer_mobile__c",
-                "Item_Code__c",
-                "Invoice_Amount__c",
-                "bill_tax__c",
-                "bill_grand_total__c",
-                "CreatedDate",
-                "day",
-                "store_bucket",
-                "customer_mobile"
-            ]
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"DuckDB table creation failed: {str(e)}")
-
-
-
-# @router.post("/insert-ph-data")
-# def insert_transaction_phone_data(
-#     start_range: int = Query(0),
-#     end_range: int = Query(100000),
-# ):
-#     """
-#     Insert phone transaction data into Iceberg (with timing + automatic numeric conversion)
-#     """
-#     total_start = time.time()
-#     mysql_creds = MysqlCatalog()
-#     namespace, table_name = "pos_transactions01", "transaction_phone_in_con_sum"
-#     dbname = "Transaction"
-#
-#     # --- Log setup ---
-#     log_file = os.path.join(LOGS_FOLDER, f"insert_ph_data_{datetime.now():%Y%m%d_%H%M%S}.log")
-#     def log_info(msg: str):
-#         with open(log_file, "a") as f:
-#             f.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {msg}\n")
-#     def log_error(msg: str):
-#         with open(log_file, "a") as f:
-#             f.write(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] [ERROR] {msg}\n")
-#
-#     # --- Step 1: Fetch data from MySQL ---
-#     fetch_start = time.time()
-#     try:
-#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
-#         # print(rows)
-#         if not rows:
-#             raise HTTPException(status_code=400, detail="No data found in range.")
-#         log_info(f"MySQL Fetch: Retrieved {len(rows)} rows.")
-#     except Exception as e:
-#         log_error(f"MySQL fetch error: {traceback.format_exc()}")
-#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
-#     fetch_end = time.time()
-#
-#     # --- Step 2: Schema inference ---
-#     schema_start = time.time()
-#     try:
-#         iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
-#         log_info("Schema inference completed successfully.")
-#     except Exception as e:
-#         log_error(f"Schema inference failed: {traceback.format_exc()}")
-#         raise HTTPException(status_code=400, detail=f"Schema inference failed: {str(e)}")
-#     schema_end = time.time()
-#
-#     # --- Step 3: Load Iceberg table ---
-#     catalog_start = time.time()
-#     catalog = get_catalog_client()
-#     table_identifier = f"{namespace}.{table_name}"
-#     try:
-#         tbl = catalog.load_table(table_identifier)
-#         log_info(f"Table loaded: {table_identifier}")
-#     except NoSuchTableError:
-#         log_error(f"Table not found: {table_identifier}")
-#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
-#     catalog_end = time.time()
-#
-#     # --- Step 4: Convert data to Arrow table ---
-#     arrow_start = time.time()
-#     try:
-#         columns_data = {field.name: [] for field in arrow_schema}
-#         for row in rows:
-#             for field in arrow_schema:
-#                 val = row.get(field.name)
-#                 # 🔹 Auto-convert numeric fields safely
-#                 if pa.types.is_integer(field.type):
-#                     try:
-#                         val = int(val) if val not in (None, "") else None
-#                     except Exception as e:
-#                         print(f"Failed to convert {field.name} to integer: {e}")
-#                         val = None
-#                 elif pa.types.is_floating(field.type):
-#                     try:
-#                         val = float(val) if val not in (None, "") else None
-#                     except Exception as e:
-#                         print(f"Failed to convert {field.name} to float: {e}")
-#                         val = None
-#                 columns_data[field.name].append(val)
-#
-#         arrays = [pa.array(columns_data[f.name], type=f.type) for f in arrow_schema]
-#         arrow_table = pa.Table.from_arrays(arrays, schema=arrow_schema)
-#         log_info(f"Arrow table built successfully ({len(rows)} rows).")
-#     except Exception as e:
-#         log_error(f"Arrow table build failed: {traceback.format_exc()}")
-#         raise HTTPException(status_code=500, detail=f"Arrow table build failed: {str(e)}")
-#     arrow_end = time.time()
-#
-#     # --- Step 5: Append data to Iceberg ---
-#     append_start = time.time()
-#     try:
-#         tbl.append(arrow_table)
-#         log_info("Data appended to Iceberg successfully.")
-#     except Exception as e:
-#         log_error(f"Data append failed: {traceback.format_exc()}")
-#         raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
-#     append_end = time.time()
-#
-#     # --- Step 6: Refresh Iceberg table ---
-#     refresh_start = time.time()
-#     try:
-#         tbl.refresh()
-#         log_info("Table refreshed successfully.")
-#     except Exception as e:
-#         log_error(f"Table refresh failed: {traceback.format_exc()}")
-#         raise HTTPException(status_code=500, detail=f"Table refresh failed: {str(e)}")
-#     refresh_end = time.time()
-#
-#     # --- Step 7: Summary ---
-#     total_end = time.time()
-#     summary = {
-#         "namespace": namespace,
-#         "table": table_name,
-#         "rows_written": len(rows),
-#         "timing_seconds": {
-#             "fetch_mysql": round(fetch_end - fetch_start, 2),
-#             "schema_inference": round(schema_end - schema_start, 2),
-#             "catalog_load": round(catalog_end - catalog_start, 2),
-#             "arrow_build": round(arrow_end - arrow_start, 2),
-#             "append_data": round(append_end - append_start, 2),
-#             "refresh_table": round(refresh_end - refresh_start, 2),
-#             "total_runtime": round(total_end - total_start, 2),
-#         },
-#
-#     }
-#
-#
-#     return summary
-
-# @router.post("/insert-ph-direct-data")
-# def insert_transaction_phone_data(
-#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
-#     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
-# ):
-#
-#     total_start = time.time()
-#     namespace, table_name = "pos_transactions01", "transaction01"
-#     dbname = "Transaction"
-#     mysql_creds = MysqlCatalog()
-#
-#     try:
-#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
-#         print("Mysql Data")
-#         print(rows[0])
-#         if not rows:
-#             raise HTTPException(status_code=400, detail="No data found in the given range.")
-#
-#     except Exception as e:
-#
-#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
-#
-#
-#
-#
-#     # print(converted_rows[0])
-#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
-#     print(f"Iceberg schema: {iceberg_schema}")
-#     print(f"Arrow schema: {arrow_schema}")
-#     # converted_records = [convert_column(r, arrow_schema) for r in rows]
-#     # print(f"Converted records: {converted_records[0]}")
-#
-#     try:
-#         arrow_table = pa.Table.from_pylist(rows, schema=arrow_schema)
-#         print(f"Arrow table: {arrow_table}")
-#     except pa.lib.ArrowTypeError as e:
-#         # Debug row/field causing error
-#         for row_idx, row in enumerate(rows):
-#             for field in arrow_schema:
-#                 val = row.get(field.name)
-#                 try:
-#                     pa.array([val], type=field.type)
-#                 except Exception as field_e:
-#                     print(f"Row {row_idx}, Field '{field.name}', Value: {val}, Type: {field.type}")
-#                     print(f"  Error: {field_e}")
-#         raise HTTPException(status_code=400, detail=f"Arrow conversion error: {str(e)}")
-#
-#     catalog_start = time.time()
-#     catalog = get_catalog_client()
-#     table_identifier = f"{namespace}.{table_name}"
-#     try:
-#         tbl = catalog.load_table(table_identifier)
-#
-#     except NoSuchTableError:
-#
-#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
-#     catalog_end = time.time()
-#     try:
-#         tbl.append(arrow_table)
-#         tbl.refresh()
-#
-#     except Exception as e:
-#
-#         raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
-#     # --- Step 6: Create table ---
-#
-#     return {
-#         "success": True,
-#         "message": "Data appended",
-#         "data":rows
-#         # "data": converted_records
-#     }
-
-# without multi threading
-# @router.post("/insert-ph-direct-data")
-# def insert_transaction_phone_data(
-#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
-#     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
-# ):
-#
-#     total_start = time.time()
-#     namespace, table_name = "pos_transactions01", "transaction01"
-#     dbname = "Transaction"
-#     mysql_creds = MysqlCatalog()
-#
-#     # Step 1: Fetch from MySQL
-#     mysql_start = time.time()
-#     try:
-#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
-#         mysql_end = time.time()
-#         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec")
-#         if not rows:
-#             raise HTTPException(status_code=400, detail="No data found in the given range.")
-#         # print(f"Sample MySQL Row: {rows[0]}")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
-#
-#     # Step 2: Infer Schema
-#     schema_start = time.time()
-#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
-#     schema_end = time.time()
-#     print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
-#     # print(f"Iceberg schema: {iceberg_schema}")
-#     # print(f"Arrow schema: {arrow_schema}")
-#
-#     # Step 3: Convert to Arrow Table
-#     arrow_start = time.time()
-#     try:
-#         arrow_table = pa.Table.from_pylist(rows, schema=arrow_schema)
-#         arrow_end = time.time()
-#         print(f"Arrow table creation completed in {arrow_end - arrow_start:.2f} sec")
-#     except pa.lib.ArrowTypeError as e:
-#         for row_idx, row in enumerate(rows):
-#             for field in arrow_schema:
-#                 val = row.get(field.name)
-#                 try:
-#                     pa.array([val], type=field.type)
-#                 except Exception as field_e:
-#                     print(f"Row {row_idx}, Field '{field.name}', Value: {val}, Type: {field.type}")
-#                     print(f"  Error: {field_e}")
-#         raise HTTPException(status_code=400, detail=f"Arrow conversion error: {str(e)}")
-#
-#     # Step 4: Load Iceberg Table from Catalog
-#     catalog_start = time.time()
-#     catalog = get_catalog_client()
-#     table_identifier = f"{namespace}.{table_name}"
-#     try:
-#         tbl = catalog.load_table(table_identifier)
-#         catalog_end = time.time()
-#         print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
-#     except NoSuchTableError:
-#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
-#
-#     # Step 5: Append Data to Table
-#     append_start = time.time()
-#     try:
-#         tbl.append(arrow_table)
-#         # tbl.refresh()
-#         append_end = time.time()
-#         print(f"Data append + refresh completed in {append_end - append_start:.2f} sec")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
-#
-#     total_end = time.time()
-#     print(f"Total execution time: {total_end - total_start:.2f} sec")
-#
-#     return {
-#         "success": True,
-#         "message": "Data appended",
-#         "rows_fetched": len(rows),
-#         "execution_times": {
-#             "mysql_fetch": round(mysql_end - mysql_start, 2),
-#             "schema_infer": round(schema_end - schema_start, 2),
-#             "arrow_convert": round(arrow_end - arrow_start, 2),
-#             "catalog_load": round(catalog_end - catalog_start, 2),
-#             "append_refresh": round(append_end - append_start, 2),
-#             "total_time": round(total_end - total_start, 2)
-#         }
-#     }
-
-
-# find to error mysql return value
-
-# def process_chunk(chunk, arrow_schema):
-#     """Convert a chunk of rows to an Arrow table."""
-#     processed_rows = []
-#     for row_idx, row in enumerate(chunk):
-#         converted_row = {}
-#         for field in arrow_schema:
-#             val = row.get(field.name)
-#             print("#"*100)
-#             print("Name",field.name)
-#
-#             print("Value",val)
-#             print("Type",type(val))
-#             print("fields Type",field.type)
-#             print("#" * 100)
-#
-#             try:
-#                 # Validate and convert per schema type
-#                 if pa.types.is_integer(field.type):
-#                     if val is None or val == "":
-#                         val = None
-#                     elif isinstance(val, str):
-#                         if val.isdigit():
-#                             val = int(val)
-#                         else:
-#                             raise ValueError(f"Invalid integer value '{val}' in column '{field.name}'")
-#                             # --- Handle floating-point fields ---
-#                 elif pa.types.is_floating(field.type):
-#                     if isinstance(val, str) and val.strip() != "":
-#                         try:
-#                             val = float(val)
-#                         except ValueError:
-#                             raise ValueError(f"Invalid float value '{val}' in column '{field.name}'")
-#
-#                         # --- Handle numeric strings (e.g. 'bill_grand_total__c': '1000') ---
-#                 elif field.name in ["bill_grand_total__c", "bill_tax__c", "Invoice_Amount__c"]:
-#                     if isinstance(val, str) and val.replace('.', '', 1).isdigit():
-#                         val = float(val) if '.' in val else int(val)
-#                     elif val in [None, ""]:
-#                         val = None
-#
-#                     # --- Handle date columns ---
-#                 elif field.name in ["Bill_Date__c", "Invoice_Date__c"]:
-#                     if isinstance(val, str) and val.strip():
-#                         parsed_date = None
-#                         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
-#                             try:
-#                                 parsed_date = datetime.strptime(val.strip(), fmt)
-#                                 break
-#                             except ValueError:
-#                                 continue
-#                         if parsed_date:
-#                             val = parsed_date.strftime("%Y-%m-%d")
-#                         else:
-#                             print(f"⚠️ Unrecognized date format in column '{field.name}': {val}")
-#                             val = None
-#
-#                 converted_row[field.name] = val
-#                 print(converted_row)
-#
-#             except Exception as e:
-#                 print(f"⚠️ Row {row_idx}, Field '{field.name}', Value: {val}, Type: {field.type}")
-#                 raise ValueError(f"Field '{field.name}' failed conversion: {e}")
-#         print(converted_row)
-#         processed_rows.append(converted_row)
-#     return pa.Table.from_pylist(chunk, schema=arrow_schema)
-# def process_chunk(chunk, arrow_schema):
-#     converted_rows = []
-#
-#     for row_idx, row in enumerate(chunk):
-#         converted_row = {}
-#         for field in arrow_schema:
-#             val = row.get(field.name)
-#             try:
-#                 # Integer fields
-#                 if pa.types.is_integer(field.type):
-#                     if val is None or val == "":
-#                         val = None
-#                     elif isinstance(val, str):
-#                         if val.isdigit():
-#                             val = int(val)
-#                         else:
-#                             # try cleaning numeric strings with decimals or commas
-#                             clean_val = re.sub(r"[^\d\-]", "", val)
-#                             if clean_val.strip() == '':
-#                                 print(f"⚠️ Row {row_idx}, Field '{field.name}' invalid integer: '{val}'")
-#                                 val = None
-#                             else:
-#                                 val = int(clean_val)
-#
-#                 # Float fields
-#                 elif pa.types.is_floating(field.type):
-#                     if isinstance(val, str):
-#                         val = float(val.strip()) if val.strip() else None
-#
-#                 # Date fields
-#                 elif field.name in ["Bill_Date__c", "Invoice_Date__c", "CreatedDate"]:
-#                     if isinstance(val, str) and val.strip():
-#                         parsed_date = None
-#                         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
-#                             try:
-#                                 parsed_date = datetime.strptime(val.strip(), fmt)
-#                                 break
-#                             except ValueError:
-#                                 continue
-#                         if parsed_date:
-#                             val = parsed_date.strftime("%Y-%m-%d")
-#                         else:
-#                             print(f"⚠️ Row {row_idx}, Field '{field.name}' invalid date format: '{val}'")
-#                             val = None
-#                 elif field.name in ["customer_mobile__c", "Item_Code__c"]:
-#                     if isinstance(val, str) and val.strip():
-#                         clean_val = ''.join(ch for ch in val if ch.isdigit())
-#                         val = clean_val if clean_val else None
-#                     elif isinstance(val, (int, float)):
-#                         val = str(int(val))
-#                     else:
-#                         val = None
-#
-#
-#                 converted_row[field.name] = val
-#
-#             except Exception as e:
-#                 print(f"❌ Conversion failed - Row {row_idx}, Field '{field.name}', Value: '{val}', Error: {e}")
-#                 raise e  # stop here so you see the full error
-#
-#         converted_rows.append(converted_row)
-
-# try:
-#     table = pa.Table.from_pylist(converted_rows, schema=arrow_schema)
-# except pa.ArrowTypeError as e:
-#     print(f"\n❌ Table creation failed with ArrowTypeError: {e}\n")
-#
-#     # Analyze each field type and sample value
-#     print("🔎 Schema vs Sample Data Type Check:")
-#     sample_row = converted_rows[0]
-#     for field in arrow_schema:
-#         val = sample_row.get(field.name)
-#         print(f" - {field.name}: schema={field.type}, sample_type={type(val).__name__}, sample_value={val}")
-#
-#     raise e
-
-def process_chunk(chunk, arrow_schema, chunk_idx=1):
-    converted_rows = []
+def process_chunk(chunk, arrow_schema):
+    processed_rows = []
+    date_formats = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y")
 
     for row_idx, row in enumerate(chunk):
         converted_row = {}
+        # print(f" Processing row {row_idx} -> keys: {list(row.keys())}")
+
         for field in arrow_schema:
-            val = row.get(field.name)
+            val = row.get(field.name, None)
+
+            # Debug mismatched field
+            if field.name not in row:
+                print(f"⚠️ Field '{field.name}' missing in row; available keys: {list(row.keys())}")
+
             try:
-                # Integer fields
+                # --- Handle empty or None values ---
+                if val in ("", " ", None):
+                    converted_row[field.name] = None
+                    continue
+
+                # --- Integer fields ---
                 if pa.types.is_integer(field.type):
-                    if val in (None, ""):
-                        val = None
-                    elif isinstance(val, str):
-                        if val.isdigit():
-                            val = int(val)
-                        else:
-                            clean_val = re.sub(r"[^\d\-]", "", val)
-                            if clean_val.strip() == '':
-                                print(f"⚠️ Chunk {chunk_idx}, Row {row_idx}, Field '{field.name}' → invalid integer: '{val}'")
-                                val = None
-                            else:
-                                val = int(clean_val)
+                    converted_row[field.name] = int(val)
 
-                # Float fields
+                # --- Float fields ---
                 elif pa.types.is_floating(field.type):
-                    if isinstance(val, str):
-                        val = float(val.strip()) if val.strip() else None
+                    converted_row[field.name] = float(val)
 
-                # Date fields
-                elif field.name in ["Bill_Date__c", "Invoice_Date__c", "CreatedDate"]:
-                    if isinstance(val, str) and val.strip():
-                        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+                # --- Timestamp or date fields ---
+                elif pa.types.is_timestamp(field.type) or pa.types.is_date(field.type):
+                    parsed_date = None
+
+                    if isinstance(val, (datetime, date)):
+                        parsed_date = val
+                    elif isinstance(val, str):
+                        val = val.strip()
+                        for fmt in date_formats:
                             try:
-                                parsed_date = datetime.strptime(val.strip(), fmt)
-                                val = parsed_date  # ✅ directly assign datetime object
+                                parsed_date = datetime.strptime(val, fmt)
                                 break
                             except ValueError:
                                 continue
 
-                # Clean mobile & item code
-                elif field.name in ["customer_mobile__c", "Item_Code__c"]:
-                    if isinstance(val, str) and val.strip():
-                        clean_val = ''.join(ch for ch in val if ch.isdigit())
-                        val = clean_val if clean_val else None
-                    elif isinstance(val, (int, float)):
-                        val = str(int(val))
+                    if parsed_date:
+                        converted_row[field.name] = (
+                            parsed_date if isinstance(parsed_date, datetime)
+                            else datetime.combine(parsed_date, datetime.min.time())
+                        )
                     else:
-                        val = None
+                        print(f" Row {row_idx}: Unrecognized date in '{field.name}': {val}")
+                        converted_row[field.name] = None
 
-                # Assign final value
-                converted_row[field.name] = val
+                # --- Default: keep as string or object ---
+                else:
+                    converted_row[field.name] = val
 
             except Exception as e:
-                print(f"""
-❌ Conversion failed!
-   🔹 Chunk: {chunk_idx}
-   🔹 Row: {row_idx}
-   🔹 Field: {field.name}
-   🔹 Arrow Type: {field.type}
-   🔹 Python Type: {type(val).__name__}
-   🔹 Value: {val}
-   🔹 Error: {e}
-""")
-                raise  # Stop immediately for deep inspection
+                print(f" Row {row_idx}, Field '{field.name}', Value: {val}, Error: {e}")
+                converted_row[field.name] = None
 
-        converted_rows.append(converted_row)
+        processed_rows.append(converted_row)
 
-    return converted_rows
+    #  Debug before conversion
+    # print(" Example converted_row:", processed_rows[0] if processed_rows else "EMPTY")
 
-# def process_chunk(chunk, arrow_schema):
-#     processed_rows = []
-#
-#     for row_idx, row in enumerate(chunk):
-#         converted_row = {}
-#         for field in arrow_schema:
-#             val = row.get(field.name)
-#
-#             try:
-#                 # --- Handle missing or empty values ---
-#                 if val in ("", " ", None):
-#                     val = None
-#
-#                 # --- Handle integer fields ---
-#                 elif pa.types.is_integer(field.type):
-#                     val = int(val)
-#
-#                 # --- Handle float/double fields ---
-#                 elif pa.types.is_floating(field.type):
-#                     val = float(val)
-#
-#                 # --- Handle timestamp/date fields ---
-#                 elif pa.types.is_timestamp(field.type):
-#                     if isinstance(val, str):
-#                         # Try several formats
-#                         parsed_date = None
-#                         for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
-#                             try:
-#                                 parsed_date = datetime.strptime(val.strip(), fmt)
-#                                 break
-#                             except ValueError:
-#                                 continue
-#                         if parsed_date:
-#                             val = pa.scalar(parsed_date, type=pa.timestamp('ms')).as_py()
-#                         else:
-#                             print(f"⚠️ Unrecognized date format in '{field.name}': {val}")
-#                             val = None
-#
-#                 converted_row[field.name] = val
-#
-#             except Exception as e:
-#                 print(f"⚠️ Row {row_idx}, Field '{field.name}', Value: {val}, Error: {e}")
-#                 raise ValueError(f"Field '{field.name}' failed conversion: {e}")
-#
-#         processed_rows.append(converted_row)
-#
-#     return pa.Table.from_pylist(processed_rows, schema=arrow_schema)
-
-# @router.post("/insert-ph-direct-data")
-# def insert_transaction_phone_data(
-#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
-#     end_range: int = Query(100000, description="End row offset for MySQL data fetch"),
-#     chunk_size: int = Query(10000, description="Chunk size for multithreading")
-# ):
-#     total_start = time.time()
-#     namespace, table_name = "pos_transactions01", "transaction01"
-#     # namespace, table_name = "pos_transactions01", "transaction_with_in"
-#     # namespace, table_name = "pos_transactions01", "transaction_with_out"
-#     dbname = "Transaction"
-#     mysql_creds = MysqlCatalog()
-#
-#     # Step 1: Fetch from MySQL
-#     mysql_start = time.time()
-#     try:
-#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
-#         mysql_end = time.time()
-#         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec with {len(rows)} rows.")
-#         if not rows:
-#             raise HTTPException(status_code=400, detail="No data found in the given range.")
-#         # print(f"Sample MySQL Row: {rows[0]}")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
-#
-#     # Step 2: Infer Schema
-#     schema_start = time.time()
-#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
-#     schema_end = time.time()
-#     print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
-#
-#     # Step 3: Convert rows → Arrow tables using multithreading
-#     arrow_start = time.time()
-#     chunks = [rows[i:i + chunk_size] for i in range(0, len(rows), chunk_size)]
-#     arrow_tables = []
-#     with ThreadPoolExecutor(max_workers=10) as executor:
-#         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
-#         for future in as_completed(futures):
-#             idx = futures[future]
-#             try:
-#                 tbl = future.result()
-#                 arrow_tables.append(tbl)
-#                 print(f"Chunk {idx+1}/{len(chunks)} processed with {tbl.num_rows} rows")
-#             except Exception as e:
-#                 print(f"Chunk {idx+1} failed: {e}")
-#                 # print(f"Chunk {chunks} failed: {e}")
-#                 # print(f"Chunk {chunks[idx]} failed: {e}")
-#                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
-#     arrow_end = time.time()
-#     print(f"All chunks converted to Arrow tables in {arrow_end - arrow_start:.2f} sec")
-#
-#     # Combine all Arrow tables into one
-#     combined_table = pa.concat_tables(arrow_tables)
-#     print(f"Combined Arrow table rows: {combined_table.num_rows}")
-#
-#     # Step 4: Load Iceberg Table from Catalog
-#     catalog_start = time.time()
-#     catalog = get_catalog_client()
-#     table_identifier = f"{namespace}.{table_name}"
-#     try:
-#         tbl = catalog.load_table(table_identifier)
-#         catalog_end = time.time()
-#         print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
-#     except NoSuchTableError:
-#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
-#
-#     # Step 5: Append data
-#     append_start = time.time()
-#     try:
-#         # tbl.append(combined_table)
-#         tbl.upsert(combined_table)
-#         tbl.refresh()
-#         append_end = time.time()
-#         print(f"Data append + refresh completed in {append_end - append_start:.2f} sec")
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
-#
-#     total_end = time.time()
-#     print(f"Total execution time: {total_end - total_start:.2f} sec")
-#
-#     return {
-#         "success": True,
-#         "message": "Data appended successfully with multithreading",
-#         "rows_fetched": len(rows),
-#         "chunks": len(chunks),
-#         "execution_times": {
-#             "mysql_fetch": round(mysql_end - mysql_start, 2),
-#             "schema_infer": round(schema_end - schema_start, 2),
-#             "arrow_convert": round(arrow_end - arrow_start, 2),
-#             "catalog_load": round(catalog_end - catalog_start, 2),
-#             "append_refresh": round(append_end - append_start, 2),
-#             "total_time": round(total_end - total_start, 2)
-#         }
-#     }
+    return pa.Table.from_pylist(processed_rows, schema=arrow_schema)
 
 
-@router.post("/insert-ph-direct-data")
-def insert_transaction_phone_data(
-    start_range: int = Query(0),
-    end_range: int = Query(100000),
-    chunk_size: int = Query(10000),
-    max_workers: int = Query(8)
+@router.post("/data/insert/data")
+def r2_catalog(
+    start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
+    end_range: int = Query(0, description="End row offset for MySQL data fetch"),
+    chunk_size: int = Query(100000, description="Chunk size for multithreading"),
 ):
-    import traceback
     total_start = time.time()
-    namespace, table_name = "pos_transactions01", "transaction01"
+    # namespace, table_name = "pos_transactions_with_out", "iceberg_out_partitioning"
+    namespace, table_name = "pos_transactions", "transaction"
+    # namespace, table_name = "pos_transactions_year", "transaction_year"
+    # namespace, table_name = "pos_transactions_year_month", "transaction_year_month"
     dbname = "Transaction"
     mysql_creds = MysqlCatalog()
 
+    # -------------------------------------------------
+    # Step 1: Fetch and Convert MySQL Data
+    # -------------------------------------------------
+    mysql_start = time.time()
     try:
-        mysql_start = time.time()
         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
-        mysql_end = time.time()
         if not rows:
             raise HTTPException(status_code=400, detail="No data found in the given range.")
-        print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f}s with {len(rows)} rows.")
+
+        converted_rows = []
+
+
+        for row in rows:
+            # Convert float fields safely
+            float_fields = ["bill_tax__c", "bill_grand_total__c", "Invoice_Amount__c"]
+            for f in float_fields:
+                val = row.get(f)
+                if isinstance(val, str):
+                    try:
+                        row[f] = float(val)
+                    except ValueError:
+                        row[f] = 0.0
+                elif val is None:
+                    row[f] = 0.0
+
+            # Convert mobile numbers to int64
+            mobile_val = row.get("customer_mobile__c")
+            if isinstance(mobile_val, str):
+                try:
+                    row["customer_mobile__c"] = int(mobile_val)
+                except ValueError:
+                    row["customer_mobile__c"] = None
+
+            # Convert Item_Code__c to int64
+            item_val = row.get("Item_Code__c")
+            if isinstance(item_val, str):
+                try:
+                    row["Item_Code__c"] = int(item_val)
+                except ValueError:
+                    row["Item_Code__c"] = 0
+
+            # Convert date strings to Python `date` object (yyyy-mm-dd only)
+            for date_field in ["Bill_Date__c",  "CreatedDate"]:
+                # print(date_field)
+                val = row.get(date_field)
+
+                if not val or str(val).strip() == "":
+                    row[date_field] = None
+                    continue
+
+                try:
+                    # use auto parser
+                    dt = parser.parse(str(val))  # can parse both '6/24/2021 0:00' and '2021-06-24 00:00:00'
+                    row[date_field] = dt
+                except Exception as e:
+                    print(f" Error converting {date_field}: {val} ({e})")
+                    row[date_field] = None
+
+            converted_rows.append(row)
+
+
+        mysql_end = time.time()
+        print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec ({len(rows)} rows).")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
 
+    # -------------------------------------------------
+    # Step 2: Infer Iceberg + Arrow Schema
+    # -------------------------------------------------
     schema_start = time.time()
     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
-    schema_end = time.time()
-    print(f"Schema inference completed in {schema_end - schema_start:.2f}s")
+    # print("iceberg_schema",iceberg_schema)
+    # print("arrow_schema",arrow_schema)
 
+    schema_end = time.time()
+    print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
+
+    # -------------------------------------------------
+    # Step 3: Convert Rows to Arrow Tables (Multithreaded)
+    # -------------------------------------------------
     arrow_start = time.time()
-    chunks = [rows[i:i + chunk_size] for i in range(0, len(rows), chunk_size)]
+    chunks = [converted_rows[i:i + chunk_size] for i in range(0, len(converted_rows), chunk_size)]
+
+    # print("chunks",chunks)
     arrow_tables = []
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    with ThreadPoolExecutor(max_workers=10) as executor:
         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
         for future in as_completed(futures):
             idx = futures[future]
             try:
                 tbl = future.result()
                 arrow_tables.append(tbl)
-                print(f"Chunk {idx+1}/{len(chunks)} processed with {tbl.num_rows} rows")
+                print(f"Chunk {idx + 1}/{len(chunks)} processed with {tbl.num_rows} rows")
             except Exception as e:
-                print(f"Chunk {idx+1} failed:\n{traceback.format_exc()}")
-                raise HTTPException(status_code=500, detail=f"Chunk {idx+1} failed: {e}")
+                print(f"Chunk {idx + 1} failed: {e}")
+                raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
+
+
     arrow_end = time.time()
+    print(f"Arrow conversion completed in {arrow_end - arrow_start:.2f} sec")
 
-    print(f"Arrow conversion finished in {arrow_end - arrow_start:.2f}s for {len(arrow_tables)} chunks")
-
+    # -------------------------------------------------
+    # Step 4: Load Iceberg Table
+    # -------------------------------------------------
     catalog_start = time.time()
     catalog = get_catalog_client()
     table_identifier = f"{namespace}.{table_name}"
+    # print(f"catalog table_identifier: {table_identifier}")
     try:
         tbl = catalog.load_table(table_identifier)
         catalog_end = time.time()
-        print(f"Catalog load completed in {catalog_end - catalog_start:.2f}s")
+        print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
     except NoSuchTableError:
         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
 
+
     append_start = time.time()
     try:
-        for chunk_tbl in arrow_tables:
-            tbl.upsert(chunk_tbl)
-        tbl.refresh()
+
+        for i, batch in enumerate(arrow_tables, start=1):
+            print(f"Appending batch {i}/{len(arrow_tables)} rows={batch.num_rows}")
+            tbl.append(batch)  # commit each
+
+
         append_end = time.time()
-        print(f"Append & refresh completed in {append_end - append_start:.2f}s")
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Data append failed: {str(e)}")
+        error_message = str(e)
+        error_code = "ICEBERG_APPEND_FAILED"
+        print(f" {error_code}: {error_message}")
 
-    total_end = time.time()
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error_code": error_code,
+                "message": f"Data append failed for table {table_identifier}",
+                "exception": error_message,
+            },
+        )
 
-    print(f"""
-======== Performance Summary ========
-MySQL Fetch     : {mysql_end - mysql_start:.2f}s
-Schema Inference: {schema_end - schema_start:.2f}s
-Arrow Convert   : {arrow_end - arrow_start:.2f}s
-Catalog Load    : {catalog_end - catalog_start:.2f}s
-Append & Refresh: {append_end - append_start:.2f}s
-Total           : {total_end - total_start:.2f}s
-=====================================
-""")
+    print(f" Append completed in {append_end - append_start:.2f} sec")
 
+    # -------------------------------------------------
+    # Step 6: Return Response
+    # -------------------------------------------------
     return {
         "success": True,
         "message": "Data appended successfully with multithreading",
@@ -1336,82 +354,610 @@ Total           : {total_end - total_start:.2f}s
             "arrow_convert": round(arrow_end - arrow_start, 2),
             "catalog_load": round(catalog_end - catalog_start, 2),
             "append_refresh": round(append_end - append_start, 2),
-            "total_time": round(total_end - total_start, 2)
-        }
+            "total_time": round(append_end - total_start, 2),
+        },
     }
+################################################################################
+# @router.post("/data/insert/month-sort")
+# def r2_catalog(
+#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
+#     end_range: int = Query(0, description="End row offset for MySQL data fetch"),
+#     chunk_size: int = Query(100000, description="Chunk size for multithreading"),
+# ):
+#     total_start = time.time()
+#     # namespace, table_name = "pos_transactions_with_out", "iceberg_out_partitioning"
+#     namespace, table_name = "pos_transactions_year_sort_month", "transaction_year_sort_month"
+#     # namespace, table_name = "pos_transactions_year", "transaction_year"
+#     # namespace, table_name = "pos_transactions_year_month", "transaction_year_month"
+#     dbname = "Transaction"
+#     mysql_creds = MysqlCatalog()
+#
+#     # -------------------------------------------------
+#     # Step 1: Fetch and Convert MySQL Data
+#     # -------------------------------------------------
+#     mysql_start = time.time()
+#     try:
+#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
+#         if not rows:
+#             raise HTTPException(status_code=400, detail="No data found in the given range.")
+#
+#         converted_rows = []
+#
+#
+#         for row in rows:
+#             # 1️⃣ Convert float fields safely
+#             float_fields = ["bill_tax__c", "bill_grand_total__c", "Invoice_Amount__c"]
+#             for f in float_fields:
+#                 val = row.get(f)
+#                 if isinstance(val, str):
+#                     try:
+#                         row[f] = float(val)
+#                     except ValueError:
+#                         row[f] = 0.0
+#                 elif val is None:
+#                     row[f] = 0.0
+#
+#             # Convert mobile numbers to int64
+#             mobile_val = row.get("customer_mobile__c")
+#             if isinstance(mobile_val, str):
+#                 try:
+#                     row["customer_mobile__c"] = int(mobile_val)
+#                 except ValueError:
+#                     row["customer_mobile__c"] = None
+#
+#             # Convert Item_Code__c to int64
+#             item_val = row.get("Item_Code__c")
+#             if isinstance(item_val, str):
+#                 try:
+#                     row["Item_Code__c"] = int(item_val)
+#                 except ValueError:
+#                     row["Item_Code__c"] = 0
+#
+#             # Convert date strings to Python `date` object (yyyy-mm-dd only)
+#             for date_field in ["Bill_Date__c",  "CreatedDate"]:
+#                 # print(date_field)
+#                 val = row.get(date_field)
+#
+#                 if not val or str(val).strip() == "":
+#                     row[date_field] = None
+#                     continue
+#
+#                 try:
+#                     # use auto parser
+#                     dt = parser.parse(str(val))  # can parse both '6/24/2021 0:00' and '2021-06-24 00:00:00'
+#                     row[date_field] = dt
+#                 except Exception as e:
+#                     print(f"⚠️ Error converting {date_field}: {val} ({e})")
+#                     row[date_field] = None
+#
+#             converted_rows.append(row)
+#
+#
+#
+#         mysql_end = time.time()
+#         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec ({len(rows)} rows).")
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     # -------------------------------------------------
+#     # Step 2: Infer Iceberg + Arrow Schema
+#     # -------------------------------------------------
+#     schema_start = time.time()
+#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
+#     # print("iceberg_schema",iceberg_schema)
+#     # print("arrow_schema",arrow_schema)
+#
+#     schema_end = time.time()
+#     print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 3: Convert Rows to Arrow Tables (Multithreaded)
+#     # -------------------------------------------------
+#     arrow_start = time.time()
+#     chunks = [converted_rows[i:i + chunk_size] for i in range(0, len(converted_rows), chunk_size)]
+#
+#     # print("chunks",chunks)
+#     arrow_tables = []
+#
+#     with ThreadPoolExecutor(max_workers=10) as executor:
+#         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
+#         for future in as_completed(futures):
+#             idx = futures[future]
+#             try:
+#                 tbl = future.result()
+#                 arrow_tables.append(tbl)
+#                 print(f"Chunk {idx + 1}/{len(chunks)} processed with {tbl.num_rows} rows")
+#             except Exception as e:
+#                 print(f"Chunk {idx + 1} failed: {e}")
+#                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
+#
+#
+#     arrow_end = time.time()
+#     print(f"Arrow conversion completed in {arrow_end - arrow_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 4: Load Iceberg Table
+#     # -------------------------------------------------
+#     catalog_start = time.time()
+#     catalog = get_catalog_client()
+#     table_identifier = f"{namespace}.{table_name}"
+#     # print(f"catalog table_identifier: {table_identifier}")
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#         catalog_end = time.time()
+#         print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+#
+#
+#     append_start = time.time()
+#     try:
+#
+#         for i, batch in enumerate(arrow_tables, start=1):
+#             print(f"Appending batch {i}/{len(arrow_tables)} rows={batch.num_rows}")
+#             tbl.append(batch)  # commit each
+#
+#
+#         append_end = time.time()
+#
+#     except Exception as e:
+#         error_message = str(e)
+#         error_code = "ICEBERG_APPEND_FAILED"
+#         print(f"❌ {error_code}: {error_message}")
+#
+#         raise HTTPException(
+#             status_code=500,
+#             detail={
+#                 "error_code": error_code,
+#                 "message": f"Data append failed for table {table_identifier}",
+#                 "exception": error_message,
+#             },
+#         )
+#
+#     print(f"✅ Append completed in {append_end - append_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 6: Return Response
+#     # -------------------------------------------------
+#     return {
+#         "success": True,
+#         "message": "Data appended successfully with multithreading",
+#         "rows_fetched": len(rows),
+#         "chunks": len(chunks),
+#         "execution_times": {
+#             "mysql_fetch": round(mysql_end - mysql_start, 2),
+#             "schema_infer": round(schema_end - schema_start, 2),
+#             "arrow_convert": round(arrow_end - arrow_start, 2),
+#             "catalog_load": round(catalog_end - catalog_start, 2),
+#             "append_refresh": round(append_end - append_start, 2),
+#             # "total_time": round(total_end - total_start, 2),
+#         },
+#     }
 
-@router.get("/inspect-ph-table")
-def inspect_transaction_table(
-    namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
-    table_name: str = Query("transaction01", description="Iceberg table name"),
-    bill_date: str | None = Query(None, description="Filter by Bill_Date__c (YYYY-MM-DD)"),
-    store_code: str | None = Query(None, description="Filter by store_code__c"),
-    customer_mobile: str | None = Query(None, description="Filter by customer_mobile__c")
-):
-    """
-    Inspect an existing Iceberg table's metadata.
-    Optionally filter by partition values (bill_date, store_code, customer_mobile).
-    """
-    import datetime
-    import pyarrow as pa
+# @router.post("/data/insert/month-none-sort")
+# def r2_catalog(
+#     start_range: int = Query(0, description="Start row offset for MySQL data fetch"),
+#     end_range: int = Query(0, description="End row offset for MySQL data fetch"),
+#     chunk_size: int = Query(100000, description="Chunk size for multithreading"),
+# ):
+#     total_start = time.time()
+#     # namespace, table_name = "pos_transactions_with_out", "iceberg_out_partitioning"
+#     namespace, table_name = "pos_transactions_month", "transaction_month"
+#     # namespace, table_name = "pos_transactions_year", "transaction_year"
+#     # namespace, table_name = "pos_transactions_year_month", "transaction_year_month"
+#     dbname = "Transaction"
+#     mysql_creds = MysqlCatalog()
+#
+#     # -------------------------------------------------
+#     # Step 1: Fetch and Convert MySQL Data
+#     # -------------------------------------------------
+#     mysql_start = time.time()
+#     try:
+#         rows = mysql_creds.get_range_ph_bi(dbname, start_range, end_range)
+#         if not rows:
+#             raise HTTPException(status_code=400, detail="No data found in the given range.")
+#
+#         converted_rows = []
+#
+#
+#         for row in rows:
+#             # 1️⃣ Convert float fields safely
+#             float_fields = ["bill_tax__c", "bill_grand_total__c", "Invoice_Amount__c"]
+#             for f in float_fields:
+#                 val = row.get(f)
+#                 if isinstance(val, str):
+#                     try:
+#                         row[f] = float(val)
+#                     except ValueError:
+#                         row[f] = 0.0
+#                 elif val is None:
+#                     row[f] = 0.0
+#
+#             # Convert mobile numbers to int64
+#             mobile_val = row.get("customer_mobile__c")
+#             if isinstance(mobile_val, str):
+#                 try:
+#                     row["customer_mobile__c"] = int(mobile_val)
+#                 except ValueError:
+#                     row["customer_mobile__c"] = None
+#
+#             # Convert Item_Code__c to int64
+#             item_val = row.get("Item_Code__c")
+#             if isinstance(item_val, str):
+#                 try:
+#                     row["Item_Code__c"] = int(item_val)
+#                 except ValueError:
+#                     row["Item_Code__c"] = 0
+#
+#             # Convert date strings to Python `date` object (yyyy-mm-dd only)
+#             for date_field in ["Bill_Date__c",  "CreatedDate"]:
+#                 # print(date_field)
+#                 val = row.get(date_field)
+#
+#                 if not val or str(val).strip() == "":
+#                     row[date_field] = None
+#                     continue
+#
+#                 try:
+#                     # use auto parser
+#                     dt = parser.parse(str(val))  # can parse both '6/24/2021 0:00' and '2021-06-24 00:00:00'
+#                     row[date_field] = dt
+#                 except Exception as e:
+#                     print(f"⚠️ Error converting {date_field}: {val} ({e})")
+#                     row[date_field] = None
+#
+#                 if date_field == "Bill_Date__c":
+#                     row["Bill_Date__month"] = dt.month
+#
+#             converted_rows.append(row)
+#             print(converted_rows[0])
+#
+#
+#         mysql_end = time.time()
+#         print(f"MySQL fetch completed in {mysql_end - mysql_start:.2f} sec ({len(rows)} rows).")
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"MySQL fetch error: {str(e)}")
+#
+#     # -------------------------------------------------
+#     # Step 2: Infer Iceberg + Arrow Schema
+#     # -------------------------------------------------
+#     schema_start = time.time()
+#     iceberg_schema, arrow_schema = infer_schema_from_record(rows[0])
+#     # print("iceberg_schema",iceberg_schema)
+#     # print("arrow_schema",arrow_schema)
+#
+#     schema_end = time.time()
+#     print(f"Schema inference completed in {schema_end - schema_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 3: Convert Rows to Arrow Tables (Multithreaded)
+#     # -------------------------------------------------
+#     arrow_start = time.time()
+#     chunks = [converted_rows[i:i + chunk_size] for i in range(0, len(converted_rows), chunk_size)]
+#
+#     # print("chunks",chunks)
+#     arrow_tables = []
+#
+#     with ThreadPoolExecutor(max_workers=10) as executor:
+#         futures = {executor.submit(process_chunk, chunk, arrow_schema): idx for idx, chunk in enumerate(chunks)}
+#         for future in as_completed(futures):
+#             idx = futures[future]
+#             try:
+#                 tbl = future.result()
+#                 arrow_tables.append(tbl)
+#                 print(f"Chunk {idx + 1}/{len(chunks)} processed with {tbl.num_rows} rows")
+#             except Exception as e:
+#                 print(f"Chunk {idx + 1} failed: {e}")
+#                 raise HTTPException(status_code=500, detail=f"Arrow chunk conversion failed: {e}")
+#
+#
+#     arrow_end = time.time()
+#     print(f"Arrow conversion completed in {arrow_end - arrow_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 4: Load Iceberg Table
+#     # -------------------------------------------------
+#     catalog_start = time.time()
+#     catalog = get_catalog_client()
+#     table_identifier = f"{namespace}.{table_name}"
+#     # print(f"catalog table_identifier: {table_identifier}")
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#         catalog_end = time.time()
+#         print(f"Catalog load completed in {catalog_end - catalog_start:.2f} sec")
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+#
+#
+#     append_start = time.time()
+#     try:
+#
+#         for i, batch in enumerate(arrow_tables, start=1):
+#             print(f"Appending batch {i}/{len(arrow_tables)} rows={batch.num_rows}")
+#             tbl.append(batch)  # commit each
+#
+#
+#         append_end = time.time()
+#
+#     except Exception as e:
+#         error_message = str(e)
+#         error_code = "ICEBERG_APPEND_FAILED"
+#         print(f"❌ {error_code}: {error_message}")
+#
+#         raise HTTPException(
+#             status_code=500,
+#             detail={
+#                 "error_code": error_code,
+#                 "message": f"Data append failed for table {table_identifier}",
+#                 "exception": error_message,
+#             },
+#         )
+#
+#     print(f"✅ Append completed in {append_end - append_start:.2f} sec")
+#
+#     # -------------------------------------------------
+#     # Step 6: Return Response
+#     # -------------------------------------------------
+#     return {
+#         "success": True,
+#         "message": "Data appended successfully with multithreading",
+#         "rows_fetched": len(rows),
+#         "chunks": len(chunks),
+#         "execution_times": {
+#             "mysql_fetch": round(mysql_end - mysql_start, 2),
+#             "schema_infer": round(schema_end - schema_start, 2),
+#             "arrow_convert": round(arrow_end - arrow_start, 2),
+#             "catalog_load": round(catalog_end - catalog_start, 2),
+#             "append_refresh": round(append_end - append_start, 2),
+#             # "total_time": round(total_end - total_start, 2),
+#         },
+#     }
 
-    table_identifier = f"{namespace}.{table_name}"
-    catalog = get_catalog_client()
+# @router.get("/table-count")
+# def table_count(
+#     namespace: str = Query("pos_transactions"),
+#     table_name: str = Query("iceberg_with_partitioning"),
+#     bill_date: str | None = Query(None),
+#     store_code: str | None = Query(None),
+#     customer_mobile: str | None = Query(None)
+# ):
+#     import datetime
+#     from pyiceberg.expressions import And, EqualTo
+#
+#     start = time.perf_counter()
+#     table_identifier = f"{namespace}.{table_name}"
+#     catalog = get_catalog_client()
+#
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error loading table: {str(e)}")
+#
+#     expr = None
+#     try:
+#         if bill_date:
+#             bill_date_parsed = datetime.datetime.strptime(bill_date, "%Y-%m-%d").date()
+#             expr = EqualTo("Bill_Date__c", bill_date_parsed)
+#
+#         if store_code:
+#             cond = EqualTo("store_code__c", store_code)
+#             expr = cond if expr is None else And(expr, cond)
+#
+#         if customer_mobile:
+#             cond = EqualTo("customer_mobile__c", int(customer_mobile))
+#             expr = cond if expr is None else And(expr, cond)
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=f"Invalid filter value: {str(e)}")
+#
+#     # fast count
+#     try:
+#         scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
+#         count_rows = scan.count()
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error reading count: {str(e)}")
+#
+#     return {
+#         "namespace": namespace,
+#         "table_name": table_name,
+#         "filters": {
+#             "bill_date": bill_date,
+#             "store_code": store_code,
+#             "customer_mobile": customer_mobile
+#         },
+#         "count": count_rows,
+#         "seconds": round(time.perf_counter() - start, 4)
+#     }
 
-    try:
-        tbl = catalog.load_table(table_identifier)
-    except NoSuchTableError:
-        raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading table: {str(e)}")
+# @router.get("/iceberg/metadata-list")
+# def get_metadata_list(
+#     namespace: str = Query(...),
+#     table_name: str = Query(...)
+# ):
+#     try:
+#         catalog = get_catalog_client()
+#         table_identifier = f"{namespace}.{table_name}"
+#         tbl = catalog.load_table(table_identifier)
+#         print(tbl.metadata.metadata_log)
+#         logs = tbl.metadata.metadata_log
+#
+#         return {
+#             "success": True,
+#             "table": table_identifier,
+#             "metadata_files": [
+#                 {
+#                     "metadata_file": x.metadata_file,
+#                     "timestamp_ms": x.timestamp_ms
+#                 }
+#                 for x in logs
+#             ]
+#         }
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
-    # Build filter expressions dynamically
-    filter_expr = None
-    if bill_date:
-        try:
-            bill_date_parsed = datetime.datetime.strptime(bill_date, "%Y-%m-%d")
-            expr = (tbl.col("Bill_Date__c") == pa.scalar(bill_date_parsed))
-            filter_expr = expr if filter_expr is None else (filter_expr & expr)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
-    if store_code:
-        expr = (tbl.col("store_code__c") == pa.scalar(store_code))
-        filter_expr = expr if filter_expr is None else (filter_expr & expr)
-    if customer_mobile:
-        expr = (tbl.col("customer_mobile__c") == pa.scalar(int(customer_mobile)))
-        filter_expr = expr if filter_expr is None else (filter_expr & expr)
+# @router.get("/iceberg/avro-files")
+# def iceberg_avro_files(
+#     namespace: str = Query(...),
+#     table_name: str = Query(...)
+# ):
+#     try:
+#         catalog = get_catalog_client()
+#         table_identifier = f"{namespace}.{table_name}"
+#         tbl = catalog.load_table(table_identifier)
+#         # # print(tbl.snapshots())
+#         # result = []
+#         # # print(tbl.metadata.avro_files)
+#         # for snap in tbl.snapshots():
+#         #     # print("snap",snap.manifests)
+#         #     for manifest in snap.manifests():
+#         #         print("manifest:")
+#         #         try:
+#         #             for df in manifest.fetch_data_files():
+#         #                 print(df)
+#         #                 # only include AVRO files, skip parquet
+#         #                 if df.file_path.endswith(".avro"):
+#         #                     result.append({
+#         #                         "snapshot_id": snap.snapshot_id,
+#         #                         "manifest": manifest.path,
+#         #                         "avro_file": df.file_path,
+#         #                         "record_count": df.record_count
+#         #                     })
+#         #         except Exception:
+#         #             pass
+#         result = []
+#
+#         for snap in tbl.snapshots:  # no ()
+#             for manifest in snap.manifests:  # no ()
+#                 try:
+#                     for df in manifest.fetch_data_files():  # correct for 0.10.0
+#                         if df.file_path.endswith(".avro"):
+#                             result.append({
+#                                 "snapshot_id": snap.snapshot_id,
+#                                 "manifest": manifest.path,
+#                                 "avro_file": df.file_path,
+#                                 "record_count": df.record_count
+#                             })
+#                 except Exception:
+#                     pass
+#
+#         return {
+#             "success": True,
+#             "table": table_identifier,
+#             "total_avro_files": len(result),
+#             "files": result
+#         }
 
-    # Read data or metadata with filter
-    try:
-        if filter_expr:
-            scan = tbl.scan(filter=filter_expr)
-        else:
-            scan = tbl.scan()
+        # return {
+        #     "success": True,
+        #     "table": table_identifier,
+        #     "total_avro_files": len(result),
+        #     "files": result
+        # }
 
-        # Collect summary information
-        files_info = []
-        for f in scan.plan_files():
-            files_info.append({
-                "file_path": f.file_path,
-                "record_count": f.record_count,
-                "file_size_in_bytes": f.file_size_in_bytes,
-                "partition": f.partition,
-            })
+    # except Exception as e:
+    #     raise HTTPException(status_code=500, detail=str(e))
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error scanning table: {str(e)}")
 
-    # Basic metadata summary
-    metadata_summary = {
-        "namespace": namespace,
-        "table_name": table_name,
-        "schema_fields": [f.name for f in tbl.schema().fields],
-        "partition_fields": [f.name for f in tbl.spec().fields],
-        "total_data_files": len(files_info),
-        "filtered": bool(filter_expr),
-    }
 
-    return {
-        "summary": metadata_summary,
-        "files": files_info[:50]  # limit to 50 results for readability
-    }
+
+import gzip
+import json
+import pandas as pd
+#
+# with gzip.open("json_backups/05.metadata.json", "rb") as f:
+#     data = json.loads(f.read().decode("utf-8"))   # decompress + decode
+#
+# df = pd.json_normalize(data)   # flatten into DataFrame
+# # print(df.columns)
+#
+# # for col,index in df:
+# #     print(col,index)
+# print("start ...")
+# for col in df.columns:
+#
+#     for idx in df.index:
+#         print(col, idx, df.loc[idx, col])
+#         print("*"*100)
+
+# @router.get("/metadata-json-read")
+# def read_metadata_json(
+#     file_path: str = Query(..., description="path to metadata gz file, example: json_backups/05.metadata.json")
+# ):
+#     try:
+#         with gzip.open(file_path, "rb") as f:
+#             data = json.loads(f.read().decode("utf-8"))
+#
+#         df = pd.json_normalize(data)
+#
+#         # convert dataframe to list of dicts for JSON response
+#         result = df.to_dict(orient="records")
+#
+#         return {
+#             "success": True,
+#             "rows": len(result),
+#             "columns": list(df.columns),
+#             "data": result
+#         }
+#
+#     except FileNotFoundError:
+#         raise HTTPException(status_code=404, detail="file not found")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+# @router.get("/metadata-json-read")
+# def read_metadata_json(s3_path: str):
+#     # s3_path example:
+#     # s3://dev-transaction/....json
+#
+#     if not s3_path.startswith("s3://"):
+#         raise HTTPException(400, "must start with s3://")
+#
+#     parts = s3_path[5:].split("/", 1)
+#     bucket = parts[0]
+#     key = parts[1]
+#
+#     try:
+#         obj = s3.get_object(Bucket=bucket, Key=key)
+#         raw = obj["Body"].read()
+#         data = json.loads(gzip.decompress(raw))   # decompress + parse
+#
+#         df = pd.json_normalize(data)
+#         return df.to_dict(orient="records")
+#
+#     except Exception as e:
+#         raise HTTPException(500, str(e))
+
+# @router.get("/metadata-json-read")
+# def read_metadata_json(
+#     s3_path: str = Query(..., description="full s3 metadata gz path")
+# ):
+#     """
+#     example:
+#     /metadata-json-read?s3_path=s3://dev-transaction/.../metadata/00000-abc.gz.metadata.json
+#     """
+#     try:
+#         parts = s3_path[5:].split("/", 1)
+#         bucket = parts[0]
+#         key = parts[1]
+#
+#         obj = s3.get_object(Bucket=bucket, Key=key)
+#         raw = obj["Body"].read()
+#         data = json.loads(gzip.decompress(raw))
+#
+#         df = pd.json_normalize(data)
+#         return df.to_dict(orient="records")
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+# import boto3
+# s3 = boto3.client("s3")
+
+
+
+
+

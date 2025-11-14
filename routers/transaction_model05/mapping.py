@@ -75,7 +75,294 @@ def build_arrow_table(rows):
     converted_rows = [convert_row(r) for r in rows]
     return pa.Table.from_pylist(converted_rows, schema=schema)
 
+# def convert_row(row, column_types):
+#     converted = []
+#     for idx, value in enumerate(row):
+#         col_type = column_types[idx]
+#
+#         try:
+#             # DECIMAL handling
+#             if col_type.startswith("decimal"):
+#                 if value is None:
+#                     converted.append(None)
+#                 elif isinstance(value, decimal.Decimal):
+#                     converted.append(str(value))
+#                 elif isinstance(value, (int, float)):
+#                     converted.append(str(value))
+#                 elif isinstance(value, str):
+#                     converted.append(str(decimal.Decimal(value)))
+#                 else:
+#                     raise TypeError(f"Unexpected type {type(value)} for decimal column")
+#
+#             # BIT handling (bytes, int, bool, string)
+#             elif col_type == "bit":
+#                 if value is None:
+#                     converted.append(None)
+#                 elif isinstance(value, (bytes, bytearray)):
+#                     converted.append(int.from_bytes(value, byteorder="big") != 0)
+#                 elif isinstance(value, int):
+#                     converted.append(value != 0)
+#                 elif isinstance(value, bool):
+#                     converted.append(value)
+#                 elif isinstance(value, str):
+#                     v = value.strip().lower()
+#                     if v in ("1", "true", "t", "yes", "y"):
+#                         converted.append(True)
+#                     elif v in ("0", "false", "f", "no", "n"):
+#                         converted.append(False)
+#                     else:
+#                         raise ValueError(f"Cannot interpret string '{value}' as bit/boolean")
+#                 else:
+#                     raise TypeError(f"Unexpected type {type(value)} for bit column")
+#
+#             # Default: pass value as is
+#             else:
+#                 converted.append(value)
+#
+#         except Exception as e:
+#             raise RuntimeError(
+#                 f"Error converting column #{idx + 1} (type '{col_type}') value '{value}': {e}"
+#             ) from e
+#
+#     return converted
+# def convert_row(row):
+#     numeric_int_fields = {"pri_id", "IsDeleted", "Invoice_Amount__c"}
+#     numeric_float_fields = {"Bill_Grant_Total__c"}
+#     converted = {}
+#     for key, val in row.items():
+#         # Handle NULL / None / empty
+#         if val in (None, "", "NULL"):
+#             converted[key] = None
+#             continue
+#
+#         # Integer fields
+#         if key in numeric_int_fields:
+#             try:
+#                 converted[key] = int(val)
+#             except Exception:
+#                 converted[key] = None
+#
+#         # Float fields
+#         elif key in numeric_float_fields:
+#             try:
+#                 converted[key] = float(val)
+#             except Exception:
+#                 converted[key] = None
+#
+#         # Everything else as string
+#         else:
+#             converted[key] = str(val)
+#
+#     return converted
 
+# def infer_schema(row_sample):
+#     """Infer PyArrow schema (pri_id=long, others=string)."""
+#     fields = []
+#     for key in row_sample.keys():
+#         # if key == "pri_id" or key in {"IsDeleted", "Invoice_Amount__c", "year", "month", "day"}:
+#         if key == "pri_id" or key in {"IsDeleted", "Invoice_Amount__c"}:
+#             fields.append(pa.field(key, pa.int64()))
+#         elif key == "Bill_Grant_Total__c":
+#             fields.append(pa.field(key, pa.float64()))
+#         else:
+#             fields.append(pa.field(key, pa.string()))
+#     return pa.schema(fields)
+
+# def convert_column(row: dict, arrow_schema: pa.Schema) -> dict:
+#     converted = {}
+#
+#     for field in arrow_schema:
+#         name = field.name
+#         dtype = field.type
+#         val = row.get(name)
+#         print("name", name, "dtype", dtype, "val", val)
+#         # Handle None / Empty
+#         if val in (None, "", "NULL"):
+#             converted[name] = None
+#             continue
+#
+#         # ---- Type-based Conversion ----
+#         try:
+#             # Integer
+#             if pa.types.is_integer(dtype):
+#                 converted[name] = int(val)
+#
+#             # Floating point
+#             elif pa.types.is_floating(dtype):
+#                 converted[name] = float(val)
+#
+#             # Boolean
+#             elif pa.types.is_boolean(dtype):
+#                 converted[name] = str(val).lower() in ("true", "1", "yes")
+#
+#             # Timestamp / Date
+#             elif pa.types.is_timestamp(dtype) or "date" in name.lower():
+#                 if isinstance(val, str):
+#                     val = datetime.fromisoformat(val[:19]) if len(val) >= 10 else None
+#                 if isinstance(val, datetime):
+#                     converted[name] = val.strftime("%Y-%m-%d %H:%M:%S")
+#                     converted[f"{name}_year"] = val.year
+#                     converted[f"{name}_month"] = val.month
+#                     converted[f"{name}_day"] = val.day
+#                 else:
+#                     converted[name] = None
+#
+#             # String / Bytes
+#             elif pa.types.is_string(dtype):
+#                 converted[name] = str(val)
+#
+#             else:
+#                 converted[name] = str(val)
+#
+#         except Exception as e:
+#             print("Failed to convert column", row)
+#
+#             print("name", name, "dtype", dtype, "val", val ,{e})
+#             converted[name] = None
+#
+#     return converted
+
+# def convert_row(row,arrow_schema):
+#     converted = {}
+#     for field in arrow_schema:
+#         val = row.get(field.name)
+#         if pa.types.is_integer(field.type):
+#             converted[field.name] = int(val) if val is not None else None
+#         elif pa.types.is_floating(field.type):
+#             converted[field.name] = float(val) if val is not None else None
+#         elif pa.types.is_boolean(field.type):
+#             converted[field.name] = bool(val) if val is not None else None
+#         else:
+#             converted[field.name] = str(val) if val is not None else None
+#     return converted
+#
+# def convert_column(row: dict, arrow_schema: pa.Schema) -> dict:
+#     converted = {}
+#
+#     for field in arrow_schema:
+#         name = field.name
+#         dtype = field.type
+#         val = row.get(name)
+#
+#         # Handle None / Empty
+#         if val in (None, "", "NULL"):
+#             converted[name] = None
+#             continue
+#
+#         # ---- Special Field Handling ----
+#         if name == "IsDeleted":
+#             converted[name] = int(val) if str(val).isdigit() else 0
+#             continue
+#
+#         if name in ("Invoice_Amount__c", "Bill_Grant_Total__c"):
+#             try:
+#                 converted[name] = float(val)
+#             except (ValueError, TypeError):
+#                 converted[name] = None
+#             continue
+#
+#         # ---- Type-based Conversion ----
+#         try:
+#             # Integer
+#             if pa.types.is_integer(dtype):
+#                 converted[name] = int(val)
+#
+#             # Floating point
+#             elif pa.types.is_floating(dtype):
+#                 converted[name] = float(val)
+#
+#             # Boolean
+#             elif pa.types.is_boolean(dtype):
+#                 converted[name] = str(val).lower() in ("true", "1", "yes")
+#
+#             # Timestamp / Date / Datetime
+#             elif pa.types.is_timestamp(dtype) or "date" in name.lower():
+#                 if isinstance(val, str):
+#                     # Handle ISO or YYYY-MM-DD formats
+#                     val = datetime.fromisoformat(val[:19]) if len(val) >= 10 else None
+#                 if isinstance(val, datetime):
+#                     converted[name] = val.strftime("%Y-%m-%d %H:%M:%S")
+#                     converted[f"{name}_year"] = val.year
+#                     converted[f"{name}_month"] = val.month
+#                     converted[f"{name}_day"] = val.day
+#                 else:
+#                     converted[name] = None
+#
+#             # Default → String
+#             else:
+#                 converted[name] = str(val)
+#
+#         except Exception:
+#             converted[name] = None
+#
+#     return converted
+
+# def convert_column(row: dict, arrow_schema: pa.Schema) -> dict:
+#     converted = {}
+#
+#     for field in arrow_schema:
+#         field_name = field.name
+#         field_type = field.type
+#         val = row.get(field_name)
+#
+#         if val in (None, "", "NULL"):
+#             converted[field_name] = None
+#             continue
+#         if field.name == "IsDeleted":
+#             converted[field.name] = int(val) if str(val).isdigit() else 0
+#
+#         elif field.name == "Invoice_Amount__c":
+#             try:
+#                 converted[field.name] = float(val)
+#             except:
+#                 converted[field.name] = None
+#         elif field.name == "Bill_Grant_Total__c":
+#             try:
+#                 converted[field.name] = float(val)
+#             except:
+#                 converted[field.name] = None
+#
+#         # ---- Integer ----
+#         if pa.types.is_integer(field_type):
+#             try:
+#                 converted[field_name] = int(val)
+#             except (ValueError, TypeError):
+#                 converted[field_name] = None
+#
+#         # ---- Float ----
+#         elif pa.types.is_floating(field_type):
+#             try:
+#                 converted[field_name] = float(val)
+#             except (ValueError, TypeError):
+#                 converted[field_name] = None
+#
+#         # ---- Boolean ----
+#         elif pa.types.is_boolean(field_type):
+#             # converted[field_name] = bool(val)
+#             converted[field_name] = str(val).lower() in ("true", "1", "yes")
+#
+#         # ---- Timestamp / DateTime ----
+#         elif pa.types.is_timestamp(field_type) or "date" in field_name.lower():
+#             try:
+#                 # Convert to datetime if string
+#                 if isinstance(val, str):
+#                     val = datetime.fromisoformat(val[:19]) if len(val) >= 10 else None
+#                 # If already datetime
+#                 if isinstance(val, datetime):
+#                     converted[field_name] = val.strftime("%Y-%m-%d %H:%M:%S")
+#                     converted[f"{field_name}_year"] = val.year
+#                     converted[f"{field_name}_month"] = val.month
+#                     converted[f"{field_name}_day"] = val.day
+#                 else:
+#                     converted[field_name] = None
+#             except Exception:
+#                 converted[field_name] = None
+#
+#         # ---- Default (string) ----
+#         else:
+#             converted[field_name] = str(val)
+#
+#     return converted
 
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
