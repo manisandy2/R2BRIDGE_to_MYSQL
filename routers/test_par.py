@@ -1,8 +1,8 @@
 # import pandas as pd
-# ##########
-# data = pd.read_parquet(r"json_backups/02.parquet")
+# # ##########
+# data = pd.read_parquet(r"json_backups/ofs.parquet")
 # print(len(data))
-# # print(data["Bill_Date__c"])
+# print(data)
 # print(data["pri_id"])
 #########
 # for i in range(1,1000000):
@@ -60,35 +60,86 @@ import time
 #     print(f"\n{col}: {table[col].to_pylist()[:10]}")
 
 
-#####################
+##########################################
 import json
 
 # import pandas as pd
 # #
-# df = pd.read_json(r"json_backups/01.metadata.json")
+# df = pd.read_json(r"json_backups/001.metadata.json")
 # print(df)
 ######################
+# import gzip
+# import json
+# import pandas as pd
+# #
+#  # with in partition
+# # with gzip.open("json_backups/Test01", "rb") as f:
+# #     data = json.loads(f.read().decode("utf-8"))   # decompress + decode
+#
+# # # # # with out partition
+# with gzip.open(r"json_backups/001.metadata.json", "rb") as f:
+#     data = json.loads(f.read().decode("utf-8"))   # decompress + decode
+# # #
+# # #
+# df = pd.json_normalize(data)   # flatten into DataFrame
+# # print(df.head())
+# # #
+# # for col,index in df:
+# #     print(col,index)
+# # print("start ...")
+# for col in df.columns:
+#
+#     for idx in df.index:
+#         print(col, idx, df.loc[idx, col])
+#         print("*"*100)
+#################################################################################
 import gzip
 import json
 import pandas as pd
-#
- # with in partition
-with gzip.open("json_backups/01.metadata.json", "rb") as f:
-    data = json.loads(f.read().decode("utf-8"))   # decompress + decode
+from pathlib import Path
+from typing import Dict, Any
 
-# # # # with out partition
-# # with gzip.open("json_backups/04.metadata.json", "rb") as f:
-# #     data = json.loads(f.read().decode("utf-8"))   # decompress + decode
-# #
-# #
-df = pd.json_normalize(data)   # flatten into DataFrame
-# print(df.head())
-# #
-# for col,index in df:
-#     print(col,index)
-# print("start ...")
-for col in df.columns:
 
-    for idx in df.index:
-        print(col, idx, df.loc[idx, col])
-        print("*"*100)
+def load_gzipped_json(filepath: str) -> Dict[str, Any]:
+    """Load and parse a gzipped JSON file."""
+    with gzip.open(filepath, "rb") as f:
+        return json.loads(f.read().decode("utf-8"))
+
+
+def process_metadata(filepath: str) -> None:
+    """
+    Process metadata from a gzipped JSON file and print its contents.
+
+    Args:
+        filepath: Path to the gzipped JSON file
+    """
+    # Input validation
+    if not Path(filepath).exists():
+        print(f"Error: File not found: {filepath}")
+        return
+
+    try:
+        # Load and normalize data
+        data = load_gzipped_json(filepath)
+        df = pd.json_normalize(data)
+
+        # Print basic info
+        print(f"Processing file: {filepath}")
+        print(f"Total rows: {len(df)}")
+        print(f"Columns: {', '.join(df.columns)}\n")
+
+        # Iterate through DataFrame more efficiently
+        for idx, row in df.iterrows():
+            print(f"--- Row {idx} ---")
+            for col in df.columns:
+                print(f"{col}: {row[col]}")
+            print("-" * 80)
+
+    except Exception as e:
+        print(f"Error processing file: {e}")
+
+
+if __name__ == "__main__":
+    # Example usage
+    file_path = "json_backups/001.metadata.json"
+    process_metadata(file_path)

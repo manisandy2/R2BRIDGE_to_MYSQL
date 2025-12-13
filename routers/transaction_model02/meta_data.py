@@ -34,8 +34,29 @@ def list_iceberg_metadata():
             "files": metadata_files
         }
 
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listing metadata: {str(e)}")
+
+
+@router.get("/metadata/read")
+def read_iceberg_metadata(key: str):
+    r2_client = get_r2_client()
+    try:
+        response = r2_client.get_object(Bucket=R2_BUCKET_NAME, Key=key)
+        content_bytes = response["Body"].read()
+        
+        # Check for GZIP magic number (1f 8b)
+        if len(content_bytes) > 2 and content_bytes[:2] == b'\x1f\x8b':
+            import gzip
+            content = gzip.decompress(content_bytes).decode("utf-8")
+        else:
+            content = content_bytes.decode("utf-8")
+            
+        import json
+        return json.loads(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading metadata file: {str(e)}")
 
 
 @router.get("/metadata/uploads")

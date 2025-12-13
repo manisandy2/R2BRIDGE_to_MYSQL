@@ -1,0 +1,23 @@
+{
+  "fields": [
+    {"name": "branch_code", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "item_code", "type": "int32", "nullable": true, "metadata": {}},
+    {"name": "item_name", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "sern_fidt", "type": "int32", "nullable": true, "metadata": {}},
+    {"name": "sern_rate", "type": "int32", "nullable": true, "metadata": {}},
+    {"name": "imei_status", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "serial_no", "type": "int64", "nullable": true, "metadata": {}},
+    {"name": "product_name", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "product_code", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "brand_name", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "brand_code", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "category_name", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "category_code", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "stock_status_code", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "stock_status_value", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "product_img", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "name", "type": "utf8", "nullable": true, "metadata": {}},
+    {"name": "apx_imei_status", "type": "utf8", "nullable": true, "metadata": {}}
+  ],
+  "metadata": {}
+}

@@ -1,0 +1,6 @@
+name: R2BridgeMysql
+environments:
+  default:
+    - environment.yml
+variables: {}
+commands: {}

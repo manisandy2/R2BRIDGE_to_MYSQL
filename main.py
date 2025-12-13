@@ -39,14 +39,15 @@ from .routers import (bucket, namespace, objects_folder,
                       database_to_transaction, crm_application,
                       partition, schemas, columns, filter,bucket_data_store
                       )
-from .routers.transaction import bucket as transaction_bucket
+from .routers.transaction_model02 import bucket as transaction_bucket
 from .routers.transaction_model02 import namespace as transaction_namespace
 from .routers.transaction_model02 import bucket_data_store01 as transaction_bds
 from .routers.transaction_model02 import database_to_transaction as transaction_database
 from .routers.transaction_model02 import table as transaction_table
 from .routers.transaction_model02 import meta_data as transaction_meta_data
-from .routers.transaction_model02 import cum_ph_06 as data_insert
+from .routers.transaction_model02 import cum_ph_01 as data_insert
 from .routers.transaction_model02 import filters as filters
+from .routers.transaction_model02 import multipart as multipart_data
 from .routers.transaction_model02 import parquet as parquet_table
 from .routers.transaction_model02 import avro as avro_files
 
@@ -78,6 +79,7 @@ app.include_router(transaction_table.router)
 app.include_router(transaction_meta_data.router)
 app.include_router(data_insert.router)
 app.include_router(filters.router)
+app.include_router(multipart_data.router)
 app.include_router(parquet_table.router)
 app.include_router(avro_files.router)
 app.include_router(schema_schema.router)
@@ -86,19 +88,6 @@ app.include_router(Inspecting_tables.router)
 app.include_router(partition_schema.router)
 app.include_router(r2_catalog_create_table.router)
 
-
-# app.include_router(namespace.router)
-# app.include_router(database_to_transaction.router)
-# app.include_router(objects_folder.router)
-# app.include_router(json_data_store.router)
-# app.include_router(get_data.router)
-# app.include_router(serial_data.router)
-# app.include_router(crm_application.router)
-# app.include_router(partition.router)
-# app.include_router(schemas.router)
-# app.include_router(columns.router)
-# app.include_router(filter.router)
-# app.include_router(bucket_data_store.router)
 
 ALLOWED_TABLES = ["Transaction",]
 
@@ -111,26 +100,6 @@ def root():
             "Tables": tables_name
             }
 
-
-
-@app.get("/iceberg/table/count")
-def iceberg_table_count(
-    name_space: str = Query(...),
-    table_name: str = Query(...)
-):
-    table_identifier = f"{name_space}.{table_name}"
-    catalog = get_catalog_client()
-
-    try:
-        tbl = catalog.load_table(table_identifier)
-        print("data",tbl)
-        row_count = tbl.scan().count()
-        return {"table": table_identifier, "count": row_count}
-
-    except NoSuchTableError:
-        raise HTTPException(404, f"Table not found: {table_identifier}")
-    except Exception as e:
-        raise HTTPException(500, f"Error counting rows: {str(e)}")
 
 
 @app.get("/table/schema")

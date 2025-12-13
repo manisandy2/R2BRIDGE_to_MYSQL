@@ -74,3 +74,7 @@ class MysqlCatalog:
             self.cursor.close()
         if self.conn:
             self.conn.close()
+
+
+# ss = MysqlCatalog()
+# print(ss.get_count(table_name="Transaction"))

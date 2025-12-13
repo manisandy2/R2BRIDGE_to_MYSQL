@@ -101,6 +101,24 @@ class MysqlCatalog:
             # self.cursor.execute(f"USE {dbname};")
             query = f"""
                 SELECT
+                    *
+                FROM {table_name}
+                ORDER BY pri_id ASC
+                LIMIT %s, %s
+            """
+
+            self.cursor.execute(query, (start, end - start))
+            return self.cursor.fetchall()
+        except Exception as e:
+            print(f"MySQL fetch error in get_range_ph_bi: {e}")
+            return []
+
+    def get_range_ph_test(self, table_name: str, start: int, end: int):
+
+        try:
+            # self.cursor.execute(f"USE {dbname};")
+            query = f"""
+                SELECT
                     pri_id,
                     store_code__c,
                     Branch_Name__c,
@@ -165,6 +183,6 @@ class MysqlCatalog:
 
 
 # cc = MysqlCatalog()
-#
+# print(cc.get_count(table_name="Transaction"))
 # print(cc.get_one_pri_id("Transaction",10000000))
 

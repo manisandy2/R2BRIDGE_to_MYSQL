@@ -1,0 +1,1942 @@
+[
+    {
+        "id": "01K3T3WXGDG0000",
+        "ticketId": "PC_SA_4425449",
+        "customerId": "PC-CUS-123719",
+        "customerName": "Sathish",
+        "mobileNo": "6369539341",
+        "apxProductName": "Mobile",
+        "itemBrandName": "Apple",
+        "itemCode": "41921",
+        "productName": "LG 8.0Kg Fully Automatic Top Load Washing Machine",
+        "status": "SerialNo Verified",
+        "branchCode": "ZSOW",
+        "branchName": "West Branch",
+        "warehouseCode": "WH01",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": "356545000000000.0",
+        "duration": "one hour",
+        "expiryTime": "2025-08-29T08:13:10",
+        "createdByName": "Sathish",
+        "createdByEmpId": "19925",
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Dhana",
+        "updatedByEmpId": "19925",
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-08-29T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19000",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-08-29T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-08-29T05:15:10"
+                },
+                "branchCity": "Hyderabad",
+                "branchContactNo": [
+                    "9842347972"
+                ],
+                "branchState": "Telangana"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15000",
+                    "name": "Meena"
+                },
+                "expiryTime": "2025-08-29T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454957",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19000",
+                    "name": "Dhana"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/0_img1.png",
+            "https://example.com/upload/0_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/0_rel1.png"
+        ],
+        "createdAt": "2025-08-10T05:13:10",
+        "updatedAt": "2025-08-29T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1000",
+            "INV/2000"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0001",
+        "ticketId": "PC_SA_4425450",
+        "customerId": "PC-CUS-123720",
+        "customerName": "Harish",
+        "mobileNo": "6369561704",
+        "apxProductName": "Mobile",
+        "itemBrandName": "LG",
+        "itemCode": "41922",
+        "productName": "Sony Bravia 55 Inch TV",
+        "status": "SerialNo Verified",
+        "branchCode": "CHEN",
+        "branchName": "South Branch",
+        "warehouseCode": "ZONL",
+        "comments": "Waiting",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": "356545000000000.0",
+        "duration": "one hour",
+        "expiryTime": "2025-08-30T08:13:10",
+        "createdByName": "Sathish",
+        "createdByEmpId": "19925",
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Priya",
+        "updatedByEmpId": "19925",
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "date": "2025-08-30T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19001",
+                    "name": "Kumar"
+                },
+                "assignedBy": {
+                    "date": "2025-08-30T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-08-30T05:15:10"
+                },
+                "branchCity": "Hyderabad",
+                "branchContactNo": [
+                    "9845909358"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ADMI",
+                    "empId": "15001",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-08-30T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454376",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19001",
+                    "name": "Dhana"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/1_img1.png",
+            "https://example.com/upload/1_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/1_rel1.png"
+        ],
+        "createdAt": "2025-08-11T05:13:10",
+        "updatedAt": "2025-08-30T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1001",
+            "INV/2001"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0002",
+        "ticketId": "PC_SA_4425451",
+        "customerId": "PC-CUS-123721",
+        "customerName": "Arun",
+        "mobileNo": 6369568396,
+        "apxProductName": "Watch",
+        "itemBrandName": "Apple",
+        "itemCode": 41923,
+        "productName": "Fire-Boltt Smart Watch",
+        "status": "SerialNo Verified",
+        "branchCode": "CHEN",
+        "branchName": "South Branch",
+        "warehouseCode": "WH03",
+        "comments": "Waiting",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-08-31T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-08-31T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19002",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-08-31T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-08-31T05:15:10"
+                },
+                "branchCity": "Mumbai",
+                "branchContactNo": [
+                    "9843414141"
+                ],
+                "branchState": "Tamil Nadu"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15002",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-08-31T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454055",
+                "status": "Pending"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19002",
+                    "name": "Kumar"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/2_img1.png",
+            "https://example.com/upload/2_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/2_rel1.png"
+        ],
+        "createdAt": "2025-08-12T05:13:10",
+        "updatedAt": "2025-08-31T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1002",
+            "INV/2002"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0003",
+        "ticketId": "PC_SA_4425452",
+        "customerId": "PC-CUS-123722",
+        "customerName": "Divya",
+        "mobileNo": 6369545561,
+        "apxProductName": "Tablet",
+        "itemBrandName": "Samsung",
+        "itemCode": 41924,
+        "productName": "LG 8.0Kg Fully Automatic Top Load Washing Machine",
+        "status": "SerialNo Verified",
+        "branchCode": "ZSOW",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH02",
+        "comments": "Testing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-01T08:13:10",
+        "createdByName": "Sathish",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "date": "2025-09-01T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19003",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-09-01T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-01T05:15:10"
+                },
+                "branchCity": "Hyderabad",
+                "branchContactNo": [
+                    "9842416849"
+                ],
+                "branchState": "Tamil Nadu"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ZSOW",
+                    "empId": "15003",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-01T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454479",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19003",
+                    "name": "Priya"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/3_img1.png",
+            "https://example.com/upload/3_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/3_rel1.png"
+        ],
+        "createdAt": "2025-08-13T05:13:10",
+        "updatedAt": "2025-09-01T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1003",
+            "INV/2003"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0004",
+        "ticketId": "PC_SA_4425453",
+        "customerId": "PC-CUS-123723",
+        "customerName": "Anitha",
+        "mobileNo": 6369589501,
+        "apxProductName": "Laptop",
+        "itemBrandName": "LG",
+        "itemCode": 41925,
+        "productName": "Fire-Boltt Smart Watch",
+        "status": "SerialNo Verified",
+        "branchCode": "CHEN",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH02",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-02T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Dhana",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "date": "2025-09-02T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19004",
+                    "name": "Kumar"
+                },
+                "assignedBy": {
+                    "date": "2025-09-02T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-02T05:15:10"
+                },
+                "branchCity": "Hyderabad",
+                "branchContactNo": [
+                    "9842967827"
+                ],
+                "branchState": "Maharashtra"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "BLRE",
+                    "empId": "15004",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-02T08:13:10",
+                "remarks": "verified",
+                "serialNo": "356545215454963",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19004",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/4_img1.png",
+            "https://example.com/upload/4_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/4_rel1.png"
+        ],
+        "createdAt": "2025-08-14T05:13:10",
+        "updatedAt": "2025-09-02T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1004",
+            "INV/2004"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0005",
+        "ticketId": "PC_SA_4425454",
+        "customerId": "PC-CUS-123724",
+        "customerName": "Geetha",
+        "mobileNo": 6369526007,
+        "apxProductName": "Laptop",
+        "itemBrandName": "Apple",
+        "itemCode": 41926,
+        "productName": "Apple MacBook Pro 14",
+        "status": "SerialNo Verified",
+        "branchCode": "ADMI",
+        "branchName": "North Branch",
+        "warehouseCode": "WH02",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-03T08:13:10",
+        "createdByName": "Sathish",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Kumar",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "date": "2025-09-03T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19005",
+                    "name": "Priya"
+                },
+                "assignedBy": {
+                    "date": "2025-09-03T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-03T05:15:10"
+                },
+                "branchCity": "Hyderabad",
+                "branchContactNo": [
+                    "9849772839"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ADMI",
+                    "empId": "15005",
+                    "name": "Meena"
+                },
+                "expiryTime": "2025-09-03T08:13:10",
+                "remarks": "ok",
+                "serialNo": "356545215454240",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ADMI",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19005",
+                    "name": "Dhana"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/5_img1.png",
+            "https://example.com/upload/5_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/5_rel1.png"
+        ],
+        "createdAt": "2025-08-15T05:13:10",
+        "updatedAt": "2025-09-03T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1005",
+            "INV/2005"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0006",
+        "ticketId": "PC_SA_4425455",
+        "customerId": "PC-CUS-123725",
+        "customerName": "Priya",
+        "mobileNo": 6369592477,
+        "apxProductName": "Laptop",
+        "itemBrandName": "LG",
+        "itemCode": 41927,
+        "productName": "Sony Bravia 55 Inch TV",
+        "status": "SerialNo Verified",
+        "branchCode": "ADMI",
+        "branchName": "West Branch",
+        "warehouseCode": "WH03",
+        "comments": "Testing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-04T08:13:10",
+        "createdByName": "Sathish",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ADMI",
+                    "date": "2025-09-04T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19006",
+                    "name": "Sathish"
+                },
+                "assignedBy": {
+                    "date": "2025-09-04T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-04T05:15:10"
+                },
+                "branchCity": "Mumbai",
+                "branchContactNo": [
+                    "9847528106"
+                ],
+                "branchState": "Tamil Nadu"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ZSOW",
+                    "empId": "15006",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-04T08:13:10",
+                "remarks": "ok",
+                "serialNo": "356545215454622",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19006",
+                    "name": "Kumar"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/6_img1.png",
+            "https://example.com/upload/6_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/6_rel1.png"
+        ],
+        "createdAt": "2025-08-16T05:13:10",
+        "updatedAt": "2025-09-04T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1006",
+            "INV/2006"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0007",
+        "ticketId": "PC_SA_4425456",
+        "customerId": "PC-CUS-123726",
+        "customerName": "Priya",
+        "mobileNo": 6369540910,
+        "apxProductName": "Laptop",
+        "itemBrandName": "Sony",
+        "itemCode": 41928,
+        "productName": "Sony Bravia 55 Inch TV",
+        "status": "SerialNo Verified",
+        "branchCode": "CHEN",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH01",
+        "comments": "Waiting",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-05T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Priya",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-09-05T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19007",
+                    "name": "Sathish"
+                },
+                "assignedBy": {
+                    "date": "2025-09-05T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-05T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9848283080"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ADMI",
+                    "empId": "15007",
+                    "name": "Sahubar Sathik K"
+                },
+                "expiryTime": "2025-09-05T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454320",
+                "status": "Pending"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19007",
+                    "name": "Kumar"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/7_img1.png",
+            "https://example.com/upload/7_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/7_rel1.png"
+        ],
+        "createdAt": "2025-08-17T05:13:10",
+        "updatedAt": "2025-09-05T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1007",
+            "INV/2007"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0008",
+        "ticketId": "PC_SA_4425457",
+        "customerId": "PC-CUS-123727",
+        "customerName": "Priya",
+        "mobileNo": 6369552266,
+        "apxProductName": "Tablet",
+        "itemBrandName": "Apple",
+        "itemCode": 41929,
+        "productName": "Sony Bravia 55 Inch TV",
+        "status": "SerialNo Verified",
+        "branchCode": "BLRE",
+        "branchName": "West Branch",
+        "warehouseCode": "WH02",
+        "comments": "Testing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-06T08:13:10",
+        "createdByName": "Dhana",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "date": "2025-09-06T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19008",
+                    "name": "Kumar"
+                },
+                "assignedBy": {
+                    "date": "2025-09-06T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-06T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9843496449"
+                ],
+                "branchState": "Maharashtra"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "BLRE",
+                    "empId": "15008",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-06T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454923",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19008",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/8_img1.png",
+            "https://example.com/upload/8_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/8_rel1.png"
+        ],
+        "createdAt": "2025-08-18T05:13:10",
+        "updatedAt": "2025-09-06T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1008",
+            "INV/2008"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0009",
+        "ticketId": "PC_SA_4425458",
+        "customerId": "PC-CUS-123728",
+        "customerName": "Arun",
+        "mobileNo": 6369529031,
+        "apxProductName": "Laptop",
+        "itemBrandName": "Samsung",
+        "itemCode": 41930,
+        "productName": "LG 8.0Kg Fully Automatic Top Load Washing Machine",
+        "status": "SerialNo Verified",
+        "branchCode": "ZSOW",
+        "branchName": "North Branch",
+        "warehouseCode": "WH02",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-07T08:13:10",
+        "createdByName": "Kumar",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Priya",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ADMI",
+                    "date": "2025-09-07T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19009",
+                    "name": "Kumar"
+                },
+                "assignedBy": {
+                    "date": "2025-09-07T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-07T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9847870037"
+                ],
+                "branchState": "Tamil Nadu"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "BLRE",
+                    "empId": "15009",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-07T08:13:10",
+                "remarks": "ok",
+                "serialNo": "356545215454730",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19009",
+                    "name": "Dhana"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/9_img1.png",
+            "https://example.com/upload/9_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/9_rel1.png"
+        ],
+        "createdAt": "2025-08-19T05:13:10",
+        "updatedAt": "2025-09-07T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1009",
+            "INV/2009"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0010",
+        "ticketId": "PC_SA_4425459",
+        "customerId": "PC-CUS-123729",
+        "customerName": "Harish",
+        "mobileNo": 6369511398,
+        "apxProductName": "Watch",
+        "itemBrandName": "Sony",
+        "itemCode": 41931,
+        "productName": "Fire-Boltt Smart Watch",
+        "status": "SerialNo Verified",
+        "branchCode": "BLRE",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH02",
+        "comments": "Testing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-08T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "date": "2025-09-08T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19010",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-09-08T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-08T05:15:10"
+                },
+                "branchCity": "Mumbai",
+                "branchContactNo": [
+                    "9846781523"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ZSOW",
+                    "empId": "15010",
+                    "name": "Sahubar Sathik K"
+                },
+                "expiryTime": "2025-09-08T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454711",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19010",
+                    "name": "Priya"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/10_img1.png",
+            "https://example.com/upload/10_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/10_rel1.png"
+        ],
+        "createdAt": "2025-08-20T05:13:10",
+        "updatedAt": "2025-09-08T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1010",
+            "INV/2010"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0011",
+        "ticketId": "PC_SA_4425460",
+        "customerId": "PC-CUS-123730",
+        "customerName": "Lakshmi",
+        "mobileNo": 6369584873,
+        "apxProductName": "Mobile",
+        "itemBrandName": "Samsung",
+        "itemCode": 41932,
+        "productName": "Fire-Boltt Smart Watch",
+        "status": "SerialNo Verified",
+        "branchCode": "ADMI",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH03",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-09T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Dhana",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-09-09T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19011",
+                    "name": "Sathish"
+                },
+                "assignedBy": {
+                    "date": "2025-09-09T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-09T05:15:10"
+                },
+                "branchCity": "Chennai",
+                "branchContactNo": [
+                    "9841613242"
+                ],
+                "branchState": "Tamil Nadu"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "BLRE",
+                    "empId": "15011",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-09T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454454",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19011",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/11_img1.png",
+            "https://example.com/upload/11_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/11_rel1.png"
+        ],
+        "createdAt": "2025-08-21T05:13:10",
+        "updatedAt": "2025-09-09T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1011",
+            "INV/2011"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0012",
+        "ticketId": "PC_SA_4425461",
+        "customerId": "PC-CUS-123731",
+        "customerName": "Aishwarya",
+        "mobileNo": 6369593321,
+        "apxProductName": "Tablet",
+        "itemBrandName": "Sony",
+        "itemCode": 41933,
+        "productName": "Samsung Galaxy S24 Ultra",
+        "status": "SerialNo Verified",
+        "branchCode": "BLRE",
+        "branchName": "South Branch",
+        "warehouseCode": "ZONL",
+        "comments": "Testing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-10T08:13:10",
+        "createdByName": "Kumar",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Dhana",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "date": "2025-09-10T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19012",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-09-10T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-10T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9847622867"
+                ],
+                "branchState": "Maharashtra"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "BLRE",
+                    "empId": "15012",
+                    "name": "Meena"
+                },
+                "expiryTime": "2025-09-10T08:13:10",
+                "remarks": "verified",
+                "serialNo": "356545215454978",
+                "status": "Pending"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19012",
+                    "name": "Kumar"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/12_img1.png",
+            "https://example.com/upload/12_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/12_rel1.png"
+        ],
+        "createdAt": "2025-08-22T05:13:10",
+        "updatedAt": "2025-09-10T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1012",
+            "INV/2012"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0013",
+        "ticketId": "PC_SA_4425462",
+        "customerId": "PC-CUS-123732",
+        "customerName": "Suresh",
+        "mobileNo": 6369551848,
+        "apxProductName": "Tablet",
+        "itemBrandName": "Samsung",
+        "itemCode": 41934,
+        "productName": "Samsung Galaxy S24 Ultra",
+        "status": "SerialNo Verified",
+        "branchCode": "BLRE",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH02",
+        "comments": "Checked",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-11T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Kumar",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-09-11T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19013",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-09-11T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-11T05:15:10"
+                },
+                "branchCity": "Mumbai",
+                "branchContactNo": [
+                    "9842992521"
+                ],
+                "branchState": "Telangana"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15013",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-11T08:13:10",
+                "remarks": "verified",
+                "serialNo": "356545215454436",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ADMI",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19013",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/13_img1.png",
+            "https://example.com/upload/13_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/13_rel1.png"
+        ],
+        "createdAt": "2025-08-23T05:13:10",
+        "updatedAt": "2025-09-11T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1013",
+            "INV/2013"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0014",
+        "ticketId": "PC_SA_4425463",
+        "customerId": "PC-CUS-123733",
+        "customerName": "Geetha",
+        "mobileNo": 6369592978,
+        "apxProductName": "Tablet",
+        "itemBrandName": "Apple",
+        "itemCode": 41935,
+        "productName": "Sony Bravia 55 Inch TV",
+        "status": "SerialNo Verified",
+        "branchCode": "ZSOW",
+        "branchName": "South Branch",
+        "warehouseCode": "WH03",
+        "comments": "Testing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-12T08:13:10",
+        "createdByName": "Dhana",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "date": "2025-09-12T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19014",
+                    "name": "Sathish"
+                },
+                "assignedBy": {
+                    "date": "2025-09-12T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-12T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9840291712"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15014",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-12T08:13:10",
+                "remarks": "ok",
+                "serialNo": "356545215454534",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19014",
+                    "name": "Kumar"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/14_img1.png",
+            "https://example.com/upload/14_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/14_rel1.png"
+        ],
+        "createdAt": "2025-08-24T05:13:10",
+        "updatedAt": "2025-09-12T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1014",
+            "INV/2014"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0015",
+        "ticketId": "PC_SA_4425464",
+        "customerId": "PC-CUS-123734",
+        "customerName": "Vikram",
+        "mobileNo": 6369516339,
+        "apxProductName": "Mobile",
+        "itemBrandName": "Sony",
+        "itemCode": 41936,
+        "productName": "LG 8.0Kg Fully Automatic Top Load Washing Machine",
+        "status": "SerialNo Verified",
+        "branchCode": "ADMI",
+        "branchName": "South Branch",
+        "warehouseCode": "WH02",
+        "comments": "Waiting",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-13T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Priya",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-09-13T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19015",
+                    "name": "Sathish"
+                },
+                "assignedBy": {
+                    "date": "2025-09-13T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-13T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9846639204"
+                ],
+                "branchState": "Telangana"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ADMI",
+                    "empId": "15015",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-13T08:13:10",
+                "remarks": "ok",
+                "serialNo": "356545215454492",
+                "status": "Pending"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ADMI",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19015",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/15_img1.png",
+            "https://example.com/upload/15_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/15_rel1.png"
+        ],
+        "createdAt": "2025-08-25T05:13:10",
+        "updatedAt": "2025-09-13T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1015",
+            "INV/2015"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0016",
+        "ticketId": "PC_SA_4425465",
+        "customerId": "PC-CUS-123735",
+        "customerName": "Rahul",
+        "mobileNo": 6369527250,
+        "apxProductName": "Mobile",
+        "itemBrandName": "Samsung",
+        "itemCode": 41937,
+        "productName": "Samsung Galaxy S24 Ultra",
+        "status": "SerialNo Verified",
+        "branchCode": "ADMI",
+        "branchName": "West Branch",
+        "warehouseCode": "WH03",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-14T08:13:10",
+        "createdByName": "Priya",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Priya",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "date": "2025-09-14T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19016",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-09-14T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-14T05:15:10"
+                },
+                "branchCity": "Bangalore",
+                "branchContactNo": [
+                    "9845625818"
+                ],
+                "branchState": "Maharashtra"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "ADMI",
+                    "empId": "15016",
+                    "name": "Meena"
+                },
+                "expiryTime": "2025-09-14T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454052",
+                "status": "Rejected"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "CHEN",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19016",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/16_img1.png",
+            "https://example.com/upload/16_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/16_rel1.png"
+        ],
+        "createdAt": "2025-08-26T05:13:10",
+        "updatedAt": "2025-09-14T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1016",
+            "INV/2016"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0017",
+        "ticketId": "PC_SA_4425466",
+        "customerId": "PC-CUS-123736",
+        "customerName": "Geetha",
+        "mobileNo": 6369533912,
+        "apxProductName": "Watch",
+        "itemBrandName": "Samsung",
+        "itemCode": 41938,
+        "productName": "LG 8.0Kg Fully Automatic Top Load Washing Machine",
+        "status": "SerialNo Verified",
+        "branchCode": "ZSOW",
+        "branchName": "South Branch",
+        "warehouseCode": "WH01",
+        "comments": "Processing",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-15T08:13:10",
+        "createdByName": "Dhana",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Priya",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "date": "2025-09-15T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19017",
+                    "name": "Priya"
+                },
+                "assignedBy": {
+                    "date": "2025-09-15T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-15T05:15:10"
+                },
+                "branchCity": "Hyderabad",
+                "branchContactNo": [
+                    "9846098997"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15017",
+                    "name": "Meena"
+                },
+                "expiryTime": "2025-09-15T08:13:10",
+                "remarks": "verified",
+                "serialNo": "356545215454795",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19017",
+                    "name": "Dhana"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/17_img1.png",
+            "https://example.com/upload/17_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/17_rel1.png"
+        ],
+        "createdAt": "2025-08-27T05:13:10",
+        "updatedAt": "2025-09-15T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1017",
+            "INV/2017"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0018",
+        "ticketId": "PC_SA_4425467",
+        "customerId": "PC-CUS-123737",
+        "customerName": "Sathish",
+        "mobileNo": 6369595092,
+        "apxProductName": "Mobile",
+        "itemBrandName": "Sony",
+        "itemCode": 41939,
+        "productName": "Samsung Galaxy S24 Ultra",
+        "status": "SerialNo Verified",
+        "branchCode": "ZSOW",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH01",
+        "comments": "Checked",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-16T08:13:10",
+        "createdByName": "Dhana",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Sathish",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "date": "2025-09-16T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19018",
+                    "name": "Dhana"
+                },
+                "assignedBy": {
+                    "date": "2025-09-16T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-16T05:15:10"
+                },
+                "branchCity": "Mumbai",
+                "branchContactNo": [
+                    "9848133392"
+                ],
+                "branchState": "Tamil Nadu"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15018",
+                    "name": "Ravi"
+                },
+                "expiryTime": "2025-09-16T08:13:10",
+                "remarks": "ok",
+                "serialNo": "356545215454500",
+                "status": "Pending"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "ZSOW",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19018",
+                    "name": "Kumar"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/18_img1.png",
+            "https://example.com/upload/18_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/18_rel1.png"
+        ],
+        "createdAt": "2025-08-28T05:13:10",
+        "updatedAt": "2025-09-16T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1018",
+            "INV/2018"
+        ]
+    },
+    {
+        "id": "01K3T3WXGDG0019",
+        "ticketId": "PC_SA_4425468",
+        "customerId": "PC-CUS-123738",
+        "customerName": "Ravi",
+        "mobileNo": 6369518136,
+        "apxProductName": "Tablet",
+        "itemBrandName": "Sony",
+        "itemCode": 41940,
+        "productName": "Sony Bravia 55 Inch TV",
+        "status": "SerialNo Verified",
+        "branchCode": "BLRE",
+        "branchName": "Corporate-Ektl",
+        "warehouseCode": "WH02",
+        "comments": "Checked",
+        "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+        "department": "Mobiles & Accessories",
+        "serialNo": 356545000000000.0,
+        "duration": "one hour",
+        "expiryTime": "2025-09-17T08:13:10",
+        "createdByName": "Sathish",
+        "createdByEmpId": 19925,
+        "createdByBranch": "Corporate-Ektl",
+        "createdByBranchCode": "ADMI",
+        "createdByDesignation": "Senior Software Engineer",
+        "createdByDept": "Software Development",
+        "updatedByName": "Kumar",
+        "updatedByEmpId": 19925,
+        "updatedByBranch": "Corporate-Ektl",
+        "updatedByBranchCode": "ADMI",
+        "updatedByDesignation": "Senior Software Engineer",
+        "updatedByDept": "Software Development",
+        "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+        "transactions": [
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "date": "2025-09-17T05:13:10",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19019",
+                    "name": "Priya"
+                },
+                "assignedBy": {
+                    "date": "2025-09-17T05:14:10"
+                },
+                "assignedTo": {
+                    "date": "2025-09-17T05:15:10"
+                },
+                "branchCity": "Chennai",
+                "branchContactNo": [
+                    "9844366873"
+                ],
+                "branchState": "Karnataka"
+            },
+            {
+                "actionBy": {
+                    "branchCode": "CHEN",
+                    "empId": "15019",
+                    "name": "Meena"
+                },
+                "expiryTime": "2025-09-17T08:13:10",
+                "remarks": "test",
+                "serialNo": "356545215454088",
+                "status": "Approved"
+            },
+            {
+                "actionBy": {
+                    "branch": "Corporate-Ektl",
+                    "branchCode": "BLRE",
+                    "dept": "Software Development",
+                    "designation": "Senior Software Engineer",
+                    "empId": "19019",
+                    "name": "Sathish"
+                },
+                "expiryTime": "",
+                "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+                "serialNo": "",
+                "status": "Invoice Verified"
+            }
+        ],
+        "upload_images": [
+            "https://example.com/upload/19_img1.png",
+            "https://example.com/upload/19_img2.png"
+        ],
+        "releaseImages": [
+            "https://example.com/release/19_rel1.png"
+        ],
+        "createdAt": "2025-08-29T05:13:10",
+        "updatedAt": "2025-09-17T13:17:15",
+        "request_attempts": 1,
+        "invoice_no": [
+            "INV/1019",
+            "INV/2019"
+        ]
+    }
+]

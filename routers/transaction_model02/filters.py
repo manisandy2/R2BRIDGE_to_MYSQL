@@ -4,60 +4,104 @@ from fastapi import APIRouter,HTTPException,Query
 from pyiceberg.expressions import And, EqualTo
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pandas as pd
+import numpy as np
 
 router = APIRouter(prefix="", tags=["filters"])
 
-@router.get("/filters/get")
+# @router.get("/filters/get")
+# def filter_customer_phone(
+#     namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
+#     table_name: str = Query("transaction01", description="Iceberg table name"),
+#     customer_mobile: str | None = Query(None, description="Filter by customer_mobile__c")
+# ):
+#     import datetime
+#     """
+#     Inspect an existing Iceberg table's metadata.
+#     Optionally filter by partition values (bill_date, store_code, customer_mobile).
+#     Adds a timeline field to measure total execution time.
+#     """
+#     start_time = time.perf_counter()  # Start timeline measurement
+#
+#     table_identifier = f"{namespace}.{table_name}"
+#     catalog = get_catalog_client()
+#
+#     # --- Load the table ---
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error loading table: {str(e)}")
+#
+#     # --- Build filter expressions dynamically ---
+#     expr = None
+#     if customer_mobile:
+#         try:
+#             cond = EqualTo("customer_mobile__c", int(customer_mobile))
+#         except:
+#             raise HTTPException(status_code=400, detail=f"Invalid filter value: {str(e)}")
+#         expr = cond
+#     # --- Perform scan ---
+#     try:
+#         scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
+#         df = scan.to_arrow().to_pandas()
+#         df = df.replace({np.nan: None})
+#         # df = arrow_table.to_pandas().reset_index(drop=True)
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
+#
+#     timeline = round(time.perf_counter() - start_time, 3)  # seconds (rounded to 3 decimals)
+#
+#     # --- Construct response ---
+#     return {
+#         "namespace": namespace,
+#         "table_name": table_name,
+#         "customer_mobile": customer_mobile,
+#         "count": len(df),
+#         "sample_rows": df.head(10).to_dict(orient="records"),
+#         "timeline_seconds": timeline
+#     }
+@router.get("/filters/get-count")
 def filter_customer_phone(
-    namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
-    table_name: str = Query("transaction01", description="Iceberg table name"),
-    customer_mobile: str | None = Query(None, description="Filter by customer_mobile__c")
+    namespace: str = Query("pos_transactions01"),
+    table_name: str = Query("transaction01"),
+    customer_mobile: int = Query(..., description="customer_mobile__c"),
 ):
-    import datetime
-    """
-    Inspect an existing Iceberg table's metadata.
-    Optionally filter by partition values (bill_date, store_code, customer_mobile).
-    Adds a timeline field to measure total execution time.
-    """
-    start_time = time.perf_counter()  # Start timeline measurement
+    import time
+    start_time = time.perf_counter()
 
     table_identifier = f"{namespace}.{table_name}"
     catalog = get_catalog_client()
 
-    # --- Load the table ---
+    # --- Load table ---
     try:
         tbl = catalog.load_table(table_identifier)
     except NoSuchTableError:
-        raise HTTPException(status_code=404, detail=f"Table not found: {table_identifier}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error loading table: {str(e)}")
+        raise HTTPException(status_code=404, detail="Table not found")
 
-    # --- Build filter expressions dynamically ---
-    expr = None
-    if customer_mobile:
-        try:
-            cond = EqualTo("customer_mobile__c", int(customer_mobile))
-        except:
-            raise HTTPException(status_code=400, detail=f"Invalid filter value: {str(e)}")
-        expr = cond
-    # --- Perform scan ---
+    # --- Iceberg scan (only required filter) ---
     try:
-        scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
+        # Full data scan
+        scan = tbl.scan(
+            row_filter=EqualTo("customer_mobile__c", customer_mobile)
+        )
         df = scan.to_arrow().to_pandas()
-        # df = arrow_table.to_pandas().reset_index(drop=True)
+        df = df.replace({np.nan: None})
+        
+        count = len(df)
+        data = df.to_dict(orient="records")
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    timeline = round(time.perf_counter() - start_time, 3)  # seconds (rounded to 3 decimals)
-
-    # --- Construct response ---
     return {
         "namespace": namespace,
         "table_name": table_name,
         "customer_mobile": customer_mobile,
-        "count": len(df),
-        "sample_rows": df.head(10).to_dict(orient="records"),
-        "timeline_seconds": timeline
+        "count": count,
+        "data": data,
+        "timeline_seconds": round(time.perf_counter() - start_time, 4),
     }
 
 
@@ -95,6 +139,7 @@ def filter_customer_phones_mysql(
     try:
         scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
         df = scan.to_arrow().to_pandas()
+        df = df.replace({np.nan: None})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
 
@@ -155,6 +200,7 @@ def filter_exact_date(
         scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
         arrow_table = scan.to_arrow()
         df = arrow_table.to_pandas().reset_index(drop=True)
+        df = df.replace({np.nan: None})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
 
@@ -218,6 +264,7 @@ def filter_between_date_range(
     # scan / read data
     try:
         df = tbl.scan(row_filter=expr).to_arrow().to_pandas().reset_index(drop=True)
+        df = df.replace({np.nan: None})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
 
@@ -261,6 +308,7 @@ def filter_id(
 
     try:
         df = tbl.scan(row_filter=expr).to_arrow().to_pandas().reset_index(drop=True)
+        df = df.replace({np.nan: None})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading data: {str(e)}")
 
@@ -394,6 +442,7 @@ def process_table(namespace: str, table_name: str, customer_mobile: str | None):
     try:
         scan = tbl.scan(row_filter=expr) if expr else tbl.scan()
         df = scan.to_arrow().to_pandas()
+        df = df.replace({np.nan: None})
         result["record_count"] = len(df)
         result["sample_rows"] = df.head(3).to_dict(orient="records")
     except Exception as e:
@@ -440,7 +489,7 @@ def filter_customer_phone_multi(
     }
 
 @router.get("/filters/ph-count")
-def filter_customer_phones_mysql(
+def get_phone_transaction_count(
     namespace: str = Query("pos_transactions01", description="Iceberg namespace name"),
     table_name: str = Query("transaction01", description="Iceberg table name"),
     phone: str = Query(None, description="Filter by customer_mobile__c"),
@@ -488,3 +537,77 @@ def filter_customer_phones_mysql(
         "count": scan,
         "timeline_seconds": timeline
     }
+
+# @router.get("/filters/get")
+# def filter_customer_phone(
+#     namespace: str = Query("data_transactions_test"),
+#     table_name: str = Query("transactions_test"),
+#     customer_mobile: int = Query(..., description="customer_mobile__c"),
+# ):
+#     start_time = time.perf_counter()
+#
+#     # -------------------------------
+#     # 1️⃣ Redis FIRST (FAST PATH)
+#     # -------------------------------
+#     redis_key = f"mobile:{customer_mobile}"
+#     cached = redis_client.get(redis_key)
+#
+#     if cached:
+#         return {
+#             "source": "redis",
+#             "namespace": namespace,
+#             "table_name": table_name,
+#             "customer_mobile": customer_mobile,
+#             "count": 1,
+#             "sample_rows": [json.loads(cached)],
+#             "timeline_seconds": round(time.perf_counter() - start_time, 4),
+#         }
+#
+#     # -------------------------------
+#     # 2️⃣ Iceberg FALLBACK
+#     # -------------------------------
+#     table_identifier = f"{namespace}.{table_name}"
+#     catalog = get_catalog_client()
+#
+#     try:
+#         tbl = catalog.load_table(table_identifier)
+#     except NoSuchTableError:
+#         raise HTTPException(status_code=404, detail="Table not found")
+#
+#     try:
+#         scan = tbl.scan(
+#             row_filter=EqualTo("customer_mobile__c", customer_mobile)
+#         )
+#
+#         # ⚠️ Arrow only, not full pandas
+#         arrow_tbl = scan.to_arrow()
+#
+#         if arrow_tbl.num_rows == 0:
+#             raise HTTPException(status_code=404, detail="Customer not found")
+#
+#         record = arrow_tbl.slice(0, 1).to_pylist()[0]
+#
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+#
+#     # -------------------------------
+#     # 3️⃣ Backfill Redis
+#     # -------------------------------
+#     redis_client.setex(
+#         redis_key,
+#         86400,  # 24 hours
+#         json.dumps(record, default=str),
+#     )
+#
+#     # -------------------------------
+#     # 4️⃣ Response
+#     # -------------------------------
+#     return {
+#         "source": "iceberg",
+#         "namespace": namespace,
+#         "table_name": table_name,
+#         "customer_mobile": customer_mobile,
+#         "count": 1,
+#         "sample_rows": [record],
+#         "timeline_seconds": round(time.perf_counter() - start_time, 4),
+#     }

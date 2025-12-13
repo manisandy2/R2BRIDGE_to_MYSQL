@@ -1,0 +1,624 @@
+try {
+  req?.body?.output?.forEach(async (element) => {
+    const sql = `SELECT COUNT(*) FROM Transaction WHERE customer_mobile__c = ? AND item_remarks1__c = ? AND store_code__c = ? AND bill_status__c = ? AND Item_Code__c = ? AND Bill_Date__c = ? AND bill_transaction_no__c = ? `;
+
+    const params = [
+      req.body.customer_mobile ?? "",
+      element.item_remarks1 ?? "",
+      req.body.store_code ?? "",
+      req.body.bill_status ?? "",
+      element.item_code ?? "",
+      req.body.bill_date ?? "",
+      req.body.bill_transcation_no ?? "",
+    ];
+    const [results] = await pool.execute(sql, params);
+    if (results[0]["COUNT(*)"] === 0) {
+
+      const sql = `INSERT INTO Transaction (customerId, ageOfDevice,emp_id,emp_name, store_code__c, billed_at_branch_name, billed_at_company_name, billed_at_address, billed_at_addressline2, billed_at_addressline3, billed_at_city, billed_at_pincode, billed_at_state, billed_at_phone_no1, billed_at_phone_no2, billed_at_GSTN_no, billed_at_state_code, billed_at_PAN_no, delivery_from_branch_store_code, delivery_from_branch_name, delivery_from_company_name, delivery_from_address, delivery_from_addressline2, delivery_from_addressline3, delivery_from_city, delivery_from_state, delivery_from_phone_no1, delivery_from_phone_no2, delivery_from_GSTN_no, delivery_from_state_code, delivery_from_PAN_no, bill_refference_no, bill_refference_date, Bill_Date__c, Bill_No__c, bill_transaction_type__c, bill_time__c, bill_status__c, bill_transaction_no__c, bill_gross_amount__c, bill_discount__c, bill_tax__c, bill_net_amount__c, bill_total_trade_deduction, bill_total_trade_addition, Bill_Grant_Total__c, bill_cancel_date__c, bill_cancel_time__c, bill_cancel_amount__c, bill_modify_date, bill_modify_time, bill_remarks1__c, bill_remarks2__c, bill_tender_type__c, customer_fname__c, Customer_Number__c, customer_email__c, customer_dob__c, customer_doa__c, Customer_Code__c, customer_lname__c, customer_gender__c, customer_city__c, customer_area__c, customer_address__c, customer_addressline2, customer_addressline3, customer_pincode, customer_mobile__c, customer_phone_no2, customer_GSTN_no, customer_PAN_no, customer_state__c, customer_state_code, delivery_to_Name, delivery_to_addressline1, delivery_to_addressline2, delivery_to_addressline3, delivery_to_city, delivery_to_state, delivery_to_pincode, delivery_to_phone_no1, delivery_to_phone_no2, delivery_to_GSTN_no, delivery_to_state_code, delivery_to_PAN_no, item_sno, Item_Code__c, item_name, Item_Name__c, item_gross_rate, item_gross_amount__c, item_quantity__c, item_discount__c, item_discount_per__c, item_taxable_Amount, item_tax__c, item_net_amount__c, item_brand_name, item_category_name__c, item_product_name, item_status__c, item_cgst_perc, item_cgst, item_sgst_perc, item_sgst, item_igst_perc, item_igst, item_remarks1__c, item_remarks2__c) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+
+      const values = [
+        customerIdCRM ?? "",
+        SerialNosAge ?? "",
+        emp_id ?? "",
+        emp_name ?? "",
+        req.body.store_code ? req.body.store_code : storeCode[1],
+        req.body.billed_at_branch_name ?? "",
+        req.body.billed_at_company_name ?? "",
+        req.body.billed_at_address ?? "",
+        req.body.billed_at_addressline2 ?? "",
+        req.body.billed_at_addressline3 ?? "",
+        req.body.billed_at_city ?? "",
+        req.body.billed_at_pincode ?? "",
+        req.body.billed_at_state ?? "",
+        req.body.billed_at_phone_no1 ?? "",
+        req.body.billed_at_phone_no2 ?? "",
+        req.body.billed_at_GSTN_no ?? "",
+        req.body.billed_at_state_code ?? "",
+        req.body.billed_at_PAN_no ?? "",
+        req.body.delivery_from_branch_store_code ?? "",
+        req.body.delivery_from_branch_name ?? "",
+        req.body.delivery_from_company_name ?? "",
+        req.body.delivery_from_address ?? "",
+        req.body.delivery_from_addressline2 ?? "",
+        req.body.delivery_from_addressline3 ?? "",
+        req.body.delivery_from_city ?? "",
+        req.body.delivery_from_state ?? "",
+        req.body.delivery_from_phone_no1 ?? "",
+        req.body.delivery_from_phone_no2 ?? "",
+        req.body.delivery_from_GSTN_no ?? "",
+        req.body.delivery_from_state_code ?? "",
+        req.body.delivery_from_PAN_no ?? "",
+        req.body.bill_refference_no ?? "",
+        req.body.bill_refference_date ?? "",
+        req.body.bill_date ?? "",
+        req.body.bill_no ?? "",
+        req.body.bill_transaction_type ?? "",
+        req.body.bill_time ?? "",
+        req.body.bill_status ?? "",
+        req.body.bill_transcation_no ?? "",
+        req.body.bill_item_gross_amount ?? "",
+        req.body.bill_item_total_discount ?? "",
+        req.body.bill_item_total_tax ?? "",
+        req.body.bill_item_net_amount ?? "",
+        req.body.bill_total_trade_deduction ?? "",
+        req.body.bill_total_trade_addition ?? "",
+        req.body.bill_grand_total ?? "",
+        req.body.bill_cancel_date ?? "",
+        req.body.bill_cancel_time ?? "",
+        req.body.bill_cancel_amount ?? "",
+        req.body.bill_modify_date ?? "",
+        req.body.bill_modify_time ?? "",
+        req.body.bill_remarks1 ?? "",
+        req.body.bill_remarks2 ?? "",
+        req.body.bill_tender_type ?? "",
+        req.body.customer_fname ?? "",
+        req.body.customer_mobile ?? "",
+        req.body.customer_email ?? "",
+        req.body.customer_dob ?? "",
+        req.body.customer_doa ?? "",
+        req.body.customer_code ?? "",
+        req.body.customer_lname ?? "",
+        req.body.customer_gender ?? "",
+        req.body.customer_city ?? "",
+        req.body.customer_area ?? "",
+        req.body.customer_addressline1 ?? "",
+        req.body.customer_addressline2 ?? "",
+        req.body.customer_addressline3 ?? "",
+        req.body.customer_pincode ?? "",
+        req.body.customer_phone_no1 ?? "",
+        req.body.customer_phone_no2 ?? "",
+        req.body.customer_GSTN_no ?? "",
+        req.body.customer_PAN_no ?? "",
+        req.body.customer_state ?? "",
+        req.body.customer_state_code ?? "",
+        req.body.delivery_to_Name ?? "",
+        req.body.delivery_to_addressline1 ?? "",
+        req.body.delivery_to_addressline2 ?? "",
+        req.body.delivery_to_addressline3 ?? "",
+        req.body.delivery_to_city ?? "",
+        req.body.delivery_to_state ?? "",
+        req.body.delivery_to_pincode ?? "",
+        req.body.delivery_to_phone_no1 ?? "",
+        req.body.delivery_to_phone_no2 ?? "",
+        req.body.delivery_to_GSTN_no ?? "",
+        req.body.delivery_to_state_code ?? "",
+        req.body.delivery_to_PAN_no ?? "",
+        element.item_sno ?? "",
+        element.item_code ?? "",
+        element.item_name ?? "",
+        element.item_name ?? "",
+        element.item_gross_rate ?? "",
+        element.item_gross_amount ?? "",
+        element.item_quantity ?? "",
+        element.item_discount1 ?? "",
+        element.item_discount2 ?? "",
+        element.item_taxable_Amount ?? "",
+        element.item_tax ?? "",
+        element.item_net_amount ?? "",
+        element.item_brand_name ?? "",
+        element.item_category_name ?? "",
+        element.item_product_name ?? "",
+        element.item_status ?? "",
+        element.item_cgst_perc ?? "",
+        element.item_cgst ?? "",
+        element.item_sgst_perc ?? "",
+        element.item_sgst ?? "",
+        element.item_igst_perc ?? "",
+        element.item_igst ?? "",
+        element.item_remarks1 ?? "",
+        element.item_remarks2 ?? "",
+      ];
+
+      try {
+        const [results] = await pool.execute(sql, values);
+        updateImeiStatus({
+          "invoice_no": req.body.bill_no,
+          "serial_no": element.item_remarks1,
+          "bill_transcation_no": req.body.bill_transcation_no,
+          "imei_status": "Sold",
+          "updated_by": "APX"
+        })
+        if (req?.body?.TradeAdditionDeduction?.length > 0) {
+          try {
+            let TradeAdditionDeductionarray = [];
+
+            req.body.TradeAdditionDeduction.forEach((elementss) => {
+              TradeAdditionDeductionarray.push([
+                element.item_remarks1,
+                elementss.type,
+                elementss.name,
+                elementss.amount,
+                moment(new Date()).format("YYYY-MM-DD"),
+                req.body.bill_date,
+                req.body.bill_transcation_no,
+                results.insertId,
+              ]);
+            });
+
+            if (TradeAdditionDeductionarray?.length > 0) {
+              const placeholders = TradeAdditionDeductionarray.map(
+                () => "(?, ?, ?, ?, ?, ?, ?, ?)"
+              ).join(", ");
+
+              const values = TradeAdditionDeductionarray.flat();
+
+              const TradeAdditionDeductionsql = `
+                        INSERT INTO TradeAdditionDeduction 
+                        (imei_number, type, name, amount, created_Date, bill_date, bill_transaction_no, pos_id) 
+                        VALUES ${placeholders}
+                      `;
+
+              const [insertResult] = await pool.query(
+                TradeAdditionDeductionsql,
+                values
+              );
+            }
+          } catch (err) {
+
+          }
+        }
+
+        try {
+          if (req?.body?.ExchangeDetails?.length > 0) {
+            let ExchangeDetailsarray = [];
+
+            req?.body?.ExchangeDetails.forEach((elem) => {
+              ExchangeDetailsarray.push([
+                elem.IDC_Date,
+                elem.IDC_DC_No,
+                elem.DC_Ref_Date,
+                elem.DC_Ref_No,
+                elem.Itemcode,
+                elem.Item_Model,
+                elem.Brand,
+                elem.Product,
+                elem.Qty,
+                parseFloat(elem.Rate),
+                parseFloat(elem.Amount),
+                elem.IMEI_No,
+                elem.Home_Pickup,
+                results.insertId, // Assuming results.insertId is defined from a previous query
+                req.body.bill_date,
+                req.body.bill_transcation_no,
+              ]);
+            });
+
+            if (ExchangeDetailsarray?.length > 0) {
+              const placeholders = ExchangeDetailsarray?.map(
+                () =>
+                  "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+              ).join(", ");
+
+              const values = ExchangeDetailsarray.flat();
+
+              const ExchangeDetailsarraysql = `
+                        INSERT INTO ExchangeDetails 
+                        (idc_date, idc_dc_no, dc_ref_date, dc_ref_no, itemcode, item_model, brand, product, qty, rate, amount, imei_no, home_pickup, pos_id, bill_date, bill_transaction_no) 
+                        VALUES ${placeholders}
+                      `;
+
+              const [insertResult] = await pool.query(
+                ExchangeDetailsarraysql,
+                values
+              );
+            }
+          }
+        } catch (error) {
+          console.log(
+            "Error executing ExchangeDetails processing:",
+            error
+          );
+
+        }
+      } catch (error) {
+
+        console.log("Error executing query3:", error);
+      }
+    } else {
+      // console.log("Updated")
+      let storeCodes = req?.body?.bill_transcation_no.split("/");
+      const transactionTable = "Transaction";
+      const customerMobileColumn = "customer_mobile__c";
+      const itemRemarks1Column = "item_remarks1__c";
+      const storeCodeColumn = "store_code__c";
+      const billStatusColumn = "bill_status__c";
+      const itemCodeColumn = "Item_Code__c";
+      const billDateColumn = "Bill_Date__c";
+      const billTransactionNoColumn = "bill_transaction_no__c";
+
+      const sql = `
+              UPDATE ${transactionTable}
+              SET
+              store_code__c = ?,
+                customerId = ?,
+                ageOfDevice = ?,
+                emp_id = ?,
+                emp_name = ?,
+                billed_at_branch_name = ?,
+                billed_at_company_name = ?,
+                billed_at_address = ?,
+                billed_at_addressline2 = ?,
+                billed_at_addressline3 = ?,
+                billed_at_city = ?,
+                billed_at_pincode = ?,
+                billed_at_state = ?,
+                billed_at_phone_no1 = ?,
+                billed_at_phone_no2 = ?,
+                billed_at_GSTN_no = ?,
+                billed_at_state_code = ?,
+                billed_at_PAN_no = ?,
+                delivery_from_branch_store_code = ?,
+                delivery_from_branch_name = ?,
+                delivery_from_company_name = ?,
+                delivery_from_address = ?,
+                delivery_from_addressline2 = ?,
+                delivery_from_addressline3 = ?,
+                delivery_from_city = ?,
+                delivery_from_state = ?,
+                delivery_from_phone_no1 = ?,
+                delivery_from_phone_no2 = ?,
+                delivery_from_GSTN_no = ?,
+                delivery_from_state_code = ?,
+                delivery_from_PAN_no = ?,
+                bill_refference_no = ?,
+                bill_refference_date = ?,
+                Bill_Date__c = ?,
+                Bill_No__c = ?,
+                bill_transaction_type__c = ?,
+                bill_time__c = ?,
+                bill_status__c = ?,
+                bill_transaction_no__c = ?,
+                bill_gross_amount__c = ?,
+                bill_discount__c = ?,
+                bill_tax__c = ?,
+                bill_net_amount__c = ?,
+                bill_total_trade_deduction = ?,
+                bill_total_trade_addition = ?,
+                Bill_Grant_Total__c = ?,
+                bill_cancel_date__c = ?,
+                bill_cancel_time__c = ?,
+                bill_cancel_amount__c = ?,
+                bill_modify_date = ?,
+                bill_modify_time = ?,
+                bill_remarks1__c = ?,
+                bill_remarks2__c = ?,
+                bill_tender_type__c = ?,
+                customer_fname__c = ?,
+                Customer_Number__c = ?,
+                customer_email__c = ?,
+                customer_dob__c = ?,
+                customer_doa__c = ?,
+                Customer_Code__c = ?,
+                customer_lname__c = ?,
+                customer_gender__c = ?,
+                customer_city__c = ?,
+                customer_area__c = ?,
+                customer_address__c = ?,
+                customer_addressline2 = ?,
+                customer_addressline3 = ?,
+                customer_pincode = ?,
+                customer_mobile__c = ?,
+                customer_phone_no2 = ?,
+                customer_GSTN_no = ?,
+                customer_PAN_no = ?,
+                customer_state__c = ?,
+                customer_state_code = ?,
+                delivery_to_Name = ?,
+                delivery_to_addressline1 = ?,
+                delivery_to_addressline2 = ?,
+                delivery_to_addressline3 = ?,
+                delivery_to_city = ?,
+                delivery_to_state = ?,
+                delivery_to_pincode = ?,
+                delivery_to_phone_no1 = ?,
+                delivery_to_phone_no2 = ?,
+                delivery_to_GSTN_no = ?,
+                delivery_to_state_code = ?,
+                delivery_to_PAN_no = ?,
+                item_sno = ?,
+                Item_Code__c = ?,
+                item_name = ?,
+                Item_Name__c = ?,
+                item_gross_rate = ?,
+                item_gross_amount__c = ?,
+                item_quantity__c = ?,
+                item_discount__c = ?,
+                item_discount_per__c = ?,
+                item_taxable_Amount = ?,
+                item_tax__c = ?,
+                item_net_amount__c = ?,
+                item_brand_name = ?,
+                item_category_name__c = ?,
+                item_product_name = ?,
+                item_status__c = ?,
+                item_cgst_perc = ?,
+                item_cgst = ?,
+                item_sgst_perc = ?,
+                item_sgst = ?,
+                item_igst_perc = ?,
+                item_igst = ?,
+                item_remarks1__c = ?,
+                item_remarks2__c = ?
+                  WHERE 
+              ${customerMobileColumn} = ? AND 
+              ${itemRemarks1Column} = ? AND 
+              ${storeCodeColumn} = ? AND 
+              ${billStatusColumn} = ? AND 
+              ${itemCodeColumn} = ? AND 
+              ${billDateColumn} = ? AND 
+              ${billTransactionNoColumn} = ?`;
+      const values = [
+        req.body.store_code ?? storeCodes[1] ?? "", // If store_codes is undefined, fall back to storeCodes[1] or ""
+        customerIdCRM ?? "",
+        SerialNosAge ?? "",
+        emp_id ?? "",
+        emp_name ?? "",
+        req.body.billed_at_branch_name ?? "",
+        req.body.billed_at_company_name ?? "",
+        req.body.billed_at_address ?? "",
+        req.body.billed_at_addressline2 ?? "",
+        req.body.billed_at_addressline3 ?? "",
+        req.body.billed_at_city ?? "",
+        req.body.billed_at_pincode ?? "",
+        req.body.billed_at_state ?? "",
+        req.body.billed_at_phone_no1 ?? "",
+        req.body.billed_at_phone_no2 ?? "",
+        req.body.billed_at_GSTN_no ?? "",
+        req.body.billed_at_state_code ?? "",
+        req.body.billed_at_PAN_no ?? "",
+        req.body.delivery_from_branch_store_code ?? "",
+        req.body.delivery_from_branch_name ?? "",
+        req.body.delivery_from_company_name ?? "",
+        req.body.delivery_from_address ?? "",
+        req.body.delivery_from_addressline2 ?? "",
+        req.body.delivery_from_addressline3 ?? "",
+        req.body.delivery_from_city ?? "",
+        req.body.delivery_from_state ?? "",
+        req.body.delivery_from_phone_no1 ?? "",
+        req.body.delivery_from_phone_no2 ?? "",
+        req.body.delivery_from_GSTN_no ?? "",
+        req.body.delivery_from_state_code ?? "",
+        req.body.delivery_from_PAN_no ?? "",
+        req.body.bill_refference_no ?? "",
+        req.body.bill_refference_date ?? "",
+        req.body.bill_date ?? "",
+        req.body.bill_no ?? "",
+        req.body.bill_transaction_type ?? "",
+        req.body.bill_time ?? "",
+        req.body.bill_status ?? "",
+        req.body.bill_transcation_no ?? "",
+        req.body.bill_item_gross_amount ?? "",
+        req.body.bill_item_total_discount ?? "",
+        req.body.bill_item_total_tax ?? "",
+        req.body.bill_item_net_amount ?? "",
+        req.body.bill_total_trade_deduction ?? "",
+        req.body.bill_total_trade_addition ?? "",
+        req.body.bill_grand_total ?? "",
+        req.body.bill_cancel_date ?? "",
+        req.body.bill_cancel_time ?? "",
+        req.body.bill_cancel_amount ?? "",
+        req.body.bill_modify_date ?? "",
+        req.body.bill_modify_time ?? "",
+        req.body.bill_remarks1 ?? "",
+        req.body.bill_remarks2 ?? "",
+        req.body.bill_tender_type ?? "",
+        req.body.customer_fname ?? "",
+        req.body.customer_mobile ?? "",
+        req.body.customer_email ?? "",
+        req.body.customer_dob ?? "",
+        req.body.customer_doa ?? "",
+        req.body.customer_code ?? "",
+        req.body.customer_lname ?? "",
+        req.body.customer_gender ?? "",
+        req.body.customer_city ?? "",
+        req.body.customer_area ?? "",
+        req.body.customer_addressline1 ?? "",
+        req.body.customer_addressline2 ?? "",
+        req.body.customer_addressline3 ?? "",
+        req.body.customer_pincode ?? "",
+        req.body.customer_phone_no1 ?? "",
+        req.body.customer_phone_no2 ?? "",
+        req.body.customer_GSTN_no ?? "",
+        req.body.customer_PAN_no ?? "",
+        req.body.customer_state ?? "",
+        req.body.customer_state_code ?? "",
+        req.body.delivery_to_Name ?? "",
+        req.body.delivery_to_addressline1 ?? "",
+        req.body.delivery_to_addressline2 ?? "",
+        req.body.delivery_to_addressline3 ?? "",
+        req.body.delivery_to_city ?? "",
+        req.body.delivery_to_state ?? "",
+        req.body.delivery_to_pincode ?? "",
+        req.body.delivery_to_phone_no1 ?? "",
+        req.body.delivery_to_phone_no2 ?? "",
+        req.body.delivery_to_GSTN_no ?? "",
+        req.body.delivery_to_state_code ?? "",
+        req.body.delivery_to_PAN_no ?? "",
+        element.item_sno ?? "",
+        element.item_code ?? "",
+        element.item_name ?? "",
+        element.item_name ?? "",
+        element.item_gross_rate ?? "",
+        element.item_gross_amount ?? "",
+        element.item_quantity ?? "",
+        element.item_discount1 ?? "",
+        element.item_discount2 ?? "",
+        element.item_taxable_Amount ?? "",
+        element.item_tax ?? "",
+        element.item_net_amount ?? "",
+        element.item_brand_name ?? "",
+        element.item_category_name ?? "",
+        element.item_product_name ?? "",
+        element.item_status ?? "",
+        element.item_cgst_perc ?? "",
+        element.item_cgst ?? "",
+        element.item_sgst_perc ?? "",
+        element.item_sgst ?? "",
+        element.item_igst_perc ?? "",
+        element.item_igst ?? "",
+        element.item_remarks1 ?? "",
+        element.item_remarks2 ?? "",
+        req.body.customer_mobile ?? "",
+        element.item_remarks1 ?? "",
+        req.body.store_code ?? "",
+        req.body.bill_status ?? "",
+        element.item_code ?? "",
+        req.body.bill_date ?? "",
+        req.body.bill_transcation_no ?? "",
+      ]; ""
+
+      
+      try {
+        const [results] = await pool.execute(sql, values);
+
+        updateImeiStatus({
+          "invoice_no": req.body.bill_no,
+          "serial_no": element.item_remarks1,
+          "bill_transcation_no": req.body.bill_transcation_no,
+          "imei_status": "Sold",
+          "updated_by": "APX"
+        })
+        if (req?.body?.TradeAdditionDeduction?.length > 0) {
+          try {
+            let TradeAdditionDeductionarray = [];
+
+            req?.body?.TradeAdditionDeduction?.forEach(
+              (elementss) => {
+                TradeAdditionDeductionarray.push([
+                  element.item_remarks1,
+                  elementss.type,
+                  elementss.name,
+                  elementss.amount,
+                  moment(new Date()).format("YYYY-MM-DD"),
+                  req.body.bill_date,
+                  req.body.bill_transcation_no,
+                  results.insertId,
+                ]);
+              }
+            );
+
+            if (TradeAdditionDeductionarray.length > 0) {
+              const placeholders = TradeAdditionDeductionarray?.map(
+                () => "(?, ?, ?, ?, ?, ?, ?, ?)"
+              ).join(", ");
+
+              const values = TradeAdditionDeductionarray.flat();
+
+              const TradeAdditionDeductionsql = `
+                        INSERT INTO TradeAdditionDeduction 
+                        (imei_number, type, name, amount, created_Date, bill_date, bill_transaction_no, pos_id) 
+                        VALUES ${placeholders}
+                      `;
+              const [insertResult] = await pool.query(
+                TradeAdditionDeductionsql,
+                values
+              );
+            }
+          } catch (err) {
+
+            console.log(
+              "Error updated inserting TradeAdditionDeductionarray:",
+              err
+            );
+          }
+        }
+
+        try {
+          // Check if ExchangeDetails exists in the body
+          if (req?.body?.ExchangeDetails?.length > 0) {
+            let ExchangeDetailsarray = [];
+
+            // Loop through each element in ExchangeDetails and push the necessary data into an array
+            req?.body?.ExchangeDetails?.forEach((elem) => {
+              ExchangeDetailsarray.push([
+                elem.IDC_Date,
+                elem.IDC_DC_No,
+                elem.DC_Ref_Date,
+                elem.DC_Ref_No,
+                elem.Itemcode,
+                elem.Item_Model,
+                elem.Brand,
+                elem.Product,
+                elem.Qty,
+                parseFloat(elem.Rate),
+                parseFloat(elem.Amount),
+                elem.IMEI_No,
+                elem.Home_Pickup,
+                results.insertId, // Assuming results.insertId is defined from a previous query
+                req.body.bill_date,
+                req.body.bill_transcation_no,
+              ]);
+            });
+
+            if (ExchangeDetailsarray?.length > 0) {
+              const placeholders = ExchangeDetailsarray?.map(
+                () =>
+                  "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+              ).join(", ");
+
+              const values = ExchangeDetailsarray.flat();
+
+              const ExchangeDetailsarraysql = `
+                        INSERT INTO ExchangeDetails 
+                        (idc_date, idc_dc_no, dc_ref_date, dc_ref_no, itemcode, item_model, brand, product, qty, rate, amount, imei_no, home_pickup, pos_id, bill_date, bill_transaction_no) 
+                        VALUES ${placeholders}
+                      `;
+
+              // console.log("Executing SQL:", ExchangeDetailsarraysql);
+              // console.log("Values:", values);
+
+              const [insertResult] = await pool.query(
+                ExchangeDetailsarraysql,
+                values
+              );
+              // console.log("updated ExchangeDetailsarray successful", insertResult);
+            }
+          }
+        } catch (error) {
+          console.log(
+            "Error updated executing ExchangeDetails processing:",
+            error
+          );
+
+        }
+      } catch (error) {
+        // Handle error
+        insertMissingData(
+          req.body,
+          "updated Error executing query new:",
+          error
+        );
+        // console.log(req.body);
+        console.log("Error executing query2:", error);
+      }
+    }
+
+
+
+
+  });
+
+  return res.status(200).json("success");
+} catch (error) {
+  return res.status(200).json("failure");
+}

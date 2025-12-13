@@ -1,0 +1,40 @@
+column_name,data_type,default_value
+id,varchar(50),NOT NULL
+ticketId,varchar(50),NOT NULL
+customerId,varchar(50),NOT NULL
+customerName,varchar(200),NOT NULL
+mobileNo,varchar(20),NOT NULL
+apxProductName,varchar(512),NOT NULL
+itemBrandName,varchar(100),NOT NULL
+itemCode,varchar(50),NOT NULL
+productName,varchar(512),NOT NULL
+status,varchar(50),NOT NULL
+branchCode,varchar(20),NOT NULL
+branchName,varchar(100),NOT NULL
+warehouseCode,varchar(100),NOT NULL
+comments,varchar(512),NULL
+remarks,varchar(512),NULL
+department,varchar(100),NULL
+serialNo,varchar(100),NULL
+duration,varchar(50),NULL
+expiryTime,datetime,NULL
+createdByName,varchar(512),NULL
+createdByEmpId,varchar(20),NULL
+createdByBranch,varchar(150),NULL
+createdByBranchCode,varchar(20),NULL
+createdByDesignation,varchar(150),NULL
+createdByDept,varchar(150),NULL
+updatedByName,varchar(512),NULL
+updatedByEmpId,varchar(20),NULL
+updatedByBranch,varchar(150),NULL
+updatedByBranchCode,varchar(20),NULL
+updatedByDesignation,varchar(50),NULL
+updatedByDept,varchar(150),NULL
+ItemImage,varchar(512),NULL
+transactions,JSON,'[]'
+upload_images,JSON,'[]'
+releaseImages,JSON,'[]'
+createdAt,datetime,CURRENT_TIMESTAMP
+updatedAt,datetime,CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+request_attempts,int(11),NULL
+invoice_no,varchar(20),NULL

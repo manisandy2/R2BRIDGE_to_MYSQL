@@ -1,11 +1,13 @@
 from fastapi import APIRouter,Query,HTTPException
 from pyiceberg.exceptions import NoSuchTableError
+
+from .table_utility import transaction_schema
 from ...core.catalog_client import get_catalog_client
 from pyiceberg.schema import Schema
 # from core.catalog_client import security,verify_jwt
 # from fastapi.security import HTTPAuthorizationCredentials
 from pyiceberg.partitioning import PartitionSpec,PartitionField
-from pyiceberg.transforms import YearTransform,MonthTransform
+from pyiceberg.transforms import YearTransform, MonthTransform, IdentityTransform,BucketTransform
 
 from pyiceberg.types import *
 from pyiceberg.catalog import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError,NoSuchTableError
@@ -32,43 +34,50 @@ def get_tables(
 
 @router.post("/table/create")
 def create_transaction(
-        # namespace: str = Query("pos_transactions"),
-        # table_name: str = Query(..., description="Table name"),
+        namespace: str = Query("pos_transactions"),
+        table_name: str = Query(..., description="Table name"),
 ):
-    namespace = "pos_transactions"
-    table_name = "transaction"
+    # namespace = "pos_transactions_test"
+    # table_name = "transaction_test"
     # table_name = "iceberg_add_range_test"
     table_identifier = f"{namespace}.{table_name}"
 
     # Step 1: Define Iceberg schema
-    transaction_schema = Schema(
-        NestedField(1,"pri_id",LongType(),required=True),
-        NestedField(2, "store_code__c", StringType()),
-        NestedField(3, "Branch_Name__c", StringType()),
-        NestedField(4, "customerId", StringType()),
-        NestedField(5, "customer_mobile__c", LongType()),
-        NestedField(6, "Customer_Name__c", StringType()),
-        NestedField(7, "Bill_No__c", StringType()),
-        NestedField(8, "Bill_Date__c", DateType()),
-        NestedField(9, "Invoice_Amount__c", DoubleType()),
-        NestedField(10, "bill_status__c", StringType()),
-        NestedField(11, "bill_transaction_no__c", StringType()),
-        NestedField(12, "Item_Code__c", LongType()),
-        NestedField(13, "Item_Name__c", StringType()),
-        NestedField(14, "bill_tax__c", DoubleType()),
-        NestedField(15, "bill_grand_total__c", DoubleType()),
-        NestedField(16, "CreatedDate", DateType()),
-    )
+
+    transaction_data_schema = Schema(*transaction_schema)
 
     # print(transaction_schema.find_field("Bill_Date__c").field_id+1)
     # Step 2: Define partition spec
+    # transaction_partition_spec = PartitionSpec(
+    #     PartitionField(
+    #         source_id=transaction_data_schema.find_field("store_code__c").field_id,
+    #         field_id=1001,
+    #         transform=IdentityTransform(),
+    #         name="store_code",
+    #     ),
+    #     PartitionField(
+    #         source_id=transaction_data_schema.find_field("Bill_Date__c").field_id,
+    #         field_id=1002,
+    #         transform=MonthTransform(),
+    #         name="month",
+    #     ),
+    # )
     transaction_partition_spec = PartitionSpec(
+        # Bucket on mobile number (FAST SEARCH)
         PartitionField(
-            source_id=transaction_schema.find_field("Bill_Date__c").field_id,
-            field_id=2001,
-            transform=YearTransform(),
-            name="year",
+            source_id=transaction_data_schema.find_field("customer_mobile__c").field_id,
+            field_id=1001,
+            transform=BucketTransform(512),  # 👈 KEY POINT
+            name="mobile_bucket",
         ),
+
+        # Time pruning (optional but recommended)
+        # PartitionField(
+        #     source_id=transaction_data_schema.find_field("Bill_Date__c").field_id,
+        #     field_id=1002,
+        #     transform=MonthTransform(),
+        #     name="bill_month",
+        # ),
     )
 
     # Step 3: Connect to catalog
@@ -86,7 +95,7 @@ def create_transaction(
     try:
         tbl = catalog.create_table(
             identifier=table_identifier,
-            schema=transaction_schema,
+            schema=transaction_data_schema,
             partition_spec=transaction_partition_spec,
             properties={
                 "format-version": "2",  # <-- mandatory
@@ -95,7 +104,8 @@ def create_transaction(
                 "write.format.default": "parquet",
                 "write.parquet.compression-codec": "zstd",
                 "write.partition.path-style": "hierarchical",   # hierarchical & directory
-                "write.sort.order": "month(Bill_Date__c) ASC, customerId,customer_mobile__c",
+                "write.sort.order": "Bill_Date__c ASC, customer_mobile__c, IMEINumber__c, Invoice_Amount__c",
+                # "write.metadata.sort-order": "customer_mobile__c, IMEINumber__c",
                 # "write.sort.order": "customerId,customer_mobile__c",
                 "write.target-file-size-bytes": "268435456"
             },
@@ -106,12 +116,21 @@ def create_transaction(
         return {
             "status": "created",
             "table": table_identifier,
-            "schema_fields": [f.name for f in transaction_schema.fields],
+            "schema_fields": [f.name for f in transaction_data_schema.fields],
             # "partitions": [f.name for f in transaction_partition_spec.fields],
         }
 
     except TableAlreadyExistsError:
-        return {"status": "exists", "table": table_identifier}
+        # return {"status": "exists", "table": table_identifier}
+        table = catalog.load_table(table_identifier)
+        snapshot = table.current_snapshot()
+        total_records = snapshot.summary.get("total-records", 0) if snapshot else 0
+
+        return {
+            "status": "exists",
+            "table": table_identifier,
+            "total_records": total_records
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Table creation failed: {str(e)}")
 
@@ -159,7 +178,7 @@ def delete_table(
     full_table_name = f"{namespace}.{table_name}"
 
     try:
-        catalog.drop_table(full_table_name)
+        catalog.drop_table(full_table_name,purge_requested=True)
         return {"message": f"Table '{full_table_name}' dropped successfully."}
 
     except NoSuchTableError:

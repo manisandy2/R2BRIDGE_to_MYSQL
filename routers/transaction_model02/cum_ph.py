@@ -1,3 +1,5 @@
+from .table_utility import transaction_clean_row,infer_schema_from_record
+
 from ...mysql_creds import *
 from pyiceberg.schema import Schema
 from pyiceberg.types import *
@@ -22,7 +24,7 @@ s3 = boto3.client("s3")
 LOGS_FOLDER = "logs/iceberg_upload"
 os.makedirs(LOGS_FOLDER, exist_ok=True)
 
-router = APIRouter(prefix="", tags=["insert"])
+router = APIRouter(prefix="", tags=["insert_data"])
 
 s3 = boto3.client(
     "s3",
@@ -33,84 +35,84 @@ s3 = boto3.client(
     region_name="auto"
 )
 
-type_mapping = {
-    "int": LongType(),
-    'bigint': LongType(),
-    'varchar': StringType(),
-    'char': StringType(),
-    'text': StringType(),
-    'longtext': StringType(),
-    'date': DateType(),
-    'datetime': TimestampType(),
-    'timestamp': TimestampType(),
-    'float': FloatType(),
-    'double': DoubleType(),
-    'boolean': BooleanType(),
-    'tinyint': BooleanType()
-}
+# type_mapping = {
+#     "int": LongType(),
+#     'bigint': LongType(),
+#     'varchar': StringType(),
+#     'char': StringType(),
+#     'text': StringType(),
+#     'longtext': StringType(),
+#     'date': DateType(),
+#     'datetime': TimestampType(),
+#     'timestamp': TimestampType(),
+#     'float': FloatType(),
+#     'double': DoubleType(),
+#     'boolean': BooleanType(),
+#     'tinyint': BooleanType()
+# }
 
-arrow_mapping = {
-    # 'int': pa.int32(),
-    "int": pa.int64(),
-    'bigint': pa.int64(),
-    'varchar': pa.string(),
-    'char': pa.string(),
-    'text': pa.string(),
-    'longtext': pa.string(),
-    'date': pa.date32(),
-    'datetime': pa.timestamp('ms'),
-    'timestamp': pa.timestamp('ms'),
-    'float': pa.float32(),
-    'double': pa.float64(),
-    'boolean': pa.bool_(),
-    'tinyint': pa.bool_(),
-    'bit': pa.bool_(),
-    # 'decimal': lambda p=18, s=6: pa.decimal128(p, s)
-    'decimal' : pa.decimal128(18, 6)
-}
+# arrow_mapping = {
+#     # 'int': pa.int32(),
+#     "int": pa.int64(),
+#     'bigint': pa.int64(),
+#     'varchar': pa.string(),
+#     'char': pa.string(),
+#     'text': pa.string(),
+#     'longtext': pa.string(),
+#     'date': pa.date32(),
+#     'datetime': pa.timestamp('ms'),
+#     'timestamp': pa.timestamp('ms'),
+#     'float': pa.float32(),
+#     'double': pa.float64(),
+#     'boolean': pa.bool_(),
+#     'tinyint': pa.bool_(),
+#     'bit': pa.bool_(),
+#     # 'decimal': lambda p=18, s=6: pa.decimal128(p, s)
+#     'decimal' : pa.decimal128(18, 6)
+# }
 
-def infer_schema_from_record(record: dict):
-    iceberg_fields = []
-    arrow_fields = []
-
-    # Custom field overrides (by name)
-    field_overrides = {
-        "pri_id": (LongType(), pa.int64(), True),
-        "Invoice_Amount__c": (DoubleType(), pa.float64(), False),
-        "Bill_Date__c": (DateType(), pa.date32(), False),
-        "CreatedDate": (DateType(), pa.date32(), False),
-    }
-
-    for idx, (name, value) in enumerate(record.items(), start=1):
-        if name in field_overrides:
-            ice_type, arrow_type, required = field_overrides[name]
-        else:
-            # Type inference
-            if isinstance(value, bool):
-                ice_type = BooleanType()
-                arrow_type = pa.bool_()
-            elif isinstance(value, int):
-                ice_type = LongType()
-                arrow_type = pa.int64()
-            elif isinstance(value, float):
-                ice_type = DoubleType()
-                arrow_type = pa.float64()
-            elif isinstance(value, (date, datetime)):
-                ice_type = DateType()
-                arrow_type = pa.date32()
-            else:
-                ice_type = StringType()
-                arrow_type = pa.string()
-            required = False
-
-        iceberg_fields.append(
-            NestedField(field_id=idx, name=name, field_type=ice_type, required=required)
-        )
-        arrow_fields.append(pa.field(name, arrow_type, nullable=not required))
-
-    iceberg_schema = Schema(*iceberg_fields)
-    arrow_schema = pa.schema(arrow_fields)
-    return iceberg_schema, arrow_schema
+# def infer_schema_from_record(record: dict):
+#     iceberg_fields = []
+#     arrow_fields = []
+#
+#     # Custom field overrides (by name)
+#     field_overrides = {
+#         "pri_id": (LongType(), pa.int64(), True),
+#         "Invoice_Amount__c": (DoubleType(), pa.float64(), False),
+#         "Bill_Date__c": (DateType(), pa.date32(), False),
+#         "CreatedDate": (DateType(), pa.date32(), False),
+#     }
+#
+#     for idx, (name, value) in enumerate(record.items(), start=1):
+#         if name in field_overrides:
+#             ice_type, arrow_type, required = field_overrides[name]
+#         else:
+#             # Type inference
+#             if isinstance(value, bool):
+#                 ice_type = BooleanType()
+#                 arrow_type = pa.bool_()
+#             elif isinstance(value, int):
+#                 ice_type = LongType()
+#                 arrow_type = pa.int64()
+#             elif isinstance(value, float):
+#                 ice_type = DoubleType()
+#                 arrow_type = pa.float64()
+#             elif isinstance(value, (date, datetime)):
+#                 ice_type = DateType()
+#                 arrow_type = pa.date32()
+#             else:
+#                 ice_type = StringType()
+#                 arrow_type = pa.string()
+#             required = False
+#
+#         iceberg_fields.append(
+#             NestedField(field_id=idx, name=name, field_type=ice_type, required=required)
+#         )
+#         arrow_fields.append(pa.field(name, arrow_type, nullable=not required))
+#
+#     iceberg_schema = Schema(*iceberg_fields)
+#     arrow_schema = pa.schema(arrow_fields)
+#     return iceberg_schema, arrow_schema
 
 
 def process_chunk(chunk, arrow_schema):
@@ -190,7 +192,7 @@ def r2_catalog(
 ):
     total_start = time.time()
     # namespace, table_name = "pos_transactions_with_out", "iceberg_out_partitioning"
-    namespace, table_name = "pos_transactions", "transaction"
+    namespace, table_name = "data_transactions_test", "transactions_test"
     # namespace, table_name = "pos_transactions_year", "transaction_year"
     # namespace, table_name = "pos_transactions_year_month", "transaction_year_month"
     dbname = "Transaction"
@@ -207,54 +209,7 @@ def r2_catalog(
 
         converted_rows = []
 
-
-        for row in rows:
-            # Convert float fields safely
-            float_fields = ["bill_tax__c", "bill_grand_total__c", "Invoice_Amount__c"]
-            for f in float_fields:
-                val = row.get(f)
-                if isinstance(val, str):
-                    try:
-                        row[f] = float(val)
-                    except ValueError:
-                        row[f] = 0.0
-                elif val is None:
-                    row[f] = 0.0
-
-            # Convert mobile numbers to int64
-            mobile_val = row.get("customer_mobile__c")
-            if isinstance(mobile_val, str):
-                try:
-                    row["customer_mobile__c"] = int(mobile_val)
-                except ValueError:
-                    row["customer_mobile__c"] = None
-
-            # Convert Item_Code__c to int64
-            item_val = row.get("Item_Code__c")
-            if isinstance(item_val, str):
-                try:
-                    row["Item_Code__c"] = int(item_val)
-                except ValueError:
-                    row["Item_Code__c"] = 0
-
-            # Convert date strings to Python `date` object (yyyy-mm-dd only)
-            for date_field in ["Bill_Date__c",  "CreatedDate"]:
-                # print(date_field)
-                val = row.get(date_field)
-
-                if not val or str(val).strip() == "":
-                    row[date_field] = None
-                    continue
-
-                try:
-                    # use auto parser
-                    dt = parser.parse(str(val))  # can parse both '6/24/2021 0:00' and '2021-06-24 00:00:00'
-                    row[date_field] = dt
-                except Exception as e:
-                    print(f" Error converting {date_field}: {val} ({e})")
-                    row[date_field] = None
-
-            converted_rows.append(row)
+        transaction_clean_row(rows)
 
 
         mysql_end = time.time()

@@ -1,0 +1,178 @@
+  [{
+    "id": "01K3T3WXGDGYTTCYZEX0BRK6GF",
+    "ticketId": "PC_SA_4425449",
+    "customerId": "PC-CUS-123719",
+    "customerName": "Manikandan",
+    "mobileNo": "6369579158",
+    "apxProductName": "Watch",
+    "itemBrandName": "fire-boltt",
+    "itemCode": "41921",
+    "productName": "LG 8.0Kg Fully Automatic Top Load Washing Machine",
+    "status": "SerialNo Verified",
+    "branchCode": "ADMI",
+    "branchName": "Corporate-Ektl",
+    "warehouseCode": "ZONL",
+    "comments": "Testing",
+    "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+    "department": "Mobiles & Accessories",
+    "serialNo": "356545215454547",
+    "duration": "one hour",
+    "expiryTime": "2025-08-29T08:13:10.000Z",
+    "createdByName": "Dhana",
+    "createdByEmpId": "19925",
+    "createdByBranch": "Corporate-Ektl",
+    "createdByBranchCode": "ADMI",
+    "createdByDesignation": "Senior Software Engineer",
+    "createdByDept": "Software Development",
+    "updatedByName": "Dhana",
+    "updatedByEmpId": "19925",
+    "updatedByBranch": "Corporate-Ektl",
+    "updatedByBranchCode": "ADMI",
+    "updatedByDesignation": "Senior Software Engineer",
+    "updatedByDept": "Software Development",
+    "ItemImage": "https://img-prd-pim.poorvika.com/product/lg-8-0kg-fully-automatic-front-load-washing-machine-t80ajmb1z-middle-black-front-view.png",
+    "transactions": [
+          {
+              "actionBy": {
+                  "branch": "Corporate-Ektl",
+                  "branchCode": "ADMI",
+                  "date": "2025-08-29T05:13:10.617Z",
+                  "dept": "Software Development",
+                  "designation": "Senior Software Engineer",
+                  "empId": "19925",
+                  "name": "Dhana"
+              },
+              "assignedBy": {
+                  "date": "2025-08-29T05:13:10.883Z"
+              },
+              "assignedTo": {
+                  "date": "2025-08-29T05:13:10.883Z"
+              },
+              "branchCity": "Chennai",
+              "branchContactNo": [
+                  "9840588855"
+              ],
+              "branchState": "Tamil Nadu"
+          },
+          {
+              "actionBy": {
+                  "branchCode": "ZSOW",
+                  "empId": "15672",
+                  "name": "Sahubar Sathik K"
+              },
+              "expiryTime": "2025-08-29T08:13:10.000Z",
+              "remarks": "test",
+              "serialNo": "356545215454547",
+              "status": "Approved"
+          },
+          {
+              "actionBy": {
+                  "branch": "Corporate-Ektl",
+                  "branchCode": "ADMI",
+                  "dept": "Software Development",
+                  "designation": "Senior Software Engineer",
+                  "empId": "19925",
+                  "name": "Dhana"
+              },
+              "expiryTime": "",
+              "remarks": "Invoice verified for this request, but the serial number has not yet been updated for this ticket ID.",
+              "serialNo": "",
+              "status": "Invoice Verified"
+          }
+      ],
+      "upload_images": [],
+      "releaseImages": [],
+      "createdAt": "2025-08-10T05:13:10.000Z",
+      "updatedAt": "2025-08-29T13:17:15.000Z",
+      "request_attempts": 1,
+      "invoice_no": []
+  },
+            {
+    "id": "01K3T4YZJDH8XTCZYEY1CRK7GH",
+    "ticketId": "PC_SA_5526781",
+    "customerId": "PC-CUS-987654",
+    "customerName": "Karthikeyan",
+    "mobileNo": "9876543210",
+    "apxProductName": "Smartphone",
+    "itemBrandName": "Samsung",
+    "itemCode": "SM1234",
+    "productName": "Samsung Galaxy S25 Ultra 5G",
+    "status": "SerialNo Verified",
+    "branchCode": "CHEN",
+    "branchName": "Chennai-Anna Nagar",
+    "warehouseCode": "CENT",
+    "comments": "Pending serial number update",
+    "remarks": "Invoice details validated successfully.",
+    "department": "Mobiles & Accessories",
+    "serialNo": "789654123654987",
+    "duration": "two hours",
+    "expiryTime": "2025-09-05T10:30:00.000Z",
+    "createdByName": "Arun",
+    "createdByEmpId": "20015",
+    "createdByBranch": "Chennai-Anna Nagar",
+    "createdByBranchCode": "CHEN",
+    "createdByDesignation": "Software Engineer",
+    "createdByDept": "Software Development",
+    "updatedByName": "Arun",
+    "updatedByEmpId": "20015",
+    "updatedByBranch": "Chennai-Anna Nagar",
+    "updatedByBranchCode": "CHEN",
+    "updatedByDesignation": "Software Engineer",
+    "updatedByDept": "Software Development",
+    "ItemImage": "https://example.com/images/samsung-galaxy-s25-ultra.png",
+    "transactions": [
+      {
+        "actionBy": {
+          "branch": "Chennai-Anna Nagar",
+          "branchCode": "CHEN",
+          "date": "2025-09-01T09:00:00.000Z",
+          "dept": "Software Development",
+          "designation": "Software Engineer",
+          "empId": "20015",
+          "name": "Arun"
+        },
+        "assignedBy": {
+          "date": "2025-09-01T09:05:00.000Z"
+        },
+        "assignedTo": {
+          "date": "2025-09-01T09:05:00.000Z"
+        },
+        "branchCity": "Chennai",
+        "branchContactNo": [
+          "9003056789"
+        ],
+        "branchState": "Tamil Nadu"
+      },
+      {
+        "actionBy": {
+          "branchCode": "BANG",
+          "empId": "17895",
+          "name": "Suresh Kumar"
+        },
+        "expiryTime": "2025-09-05T10:30:00.000Z",
+        "remarks": "Approved for release",
+        "serialNo": "789654123654987",
+        "status": "Approved"
+      },
+      {
+        "actionBy": {
+          "branch": "Chennai-Anna Nagar",
+          "branchCode": "CHEN",
+          "dept": "Software Development",
+          "designation": "Software Engineer",
+          "empId": "20015",
+          "name": "Arun"
+        },
+        "expiryTime": "",
+        "remarks": "Invoice verified successfully",
+        "serialNo": "",
+        "status": "Invoice Verified"
+      }
+    ],
+    "upload_images": [],
+    "releaseImages": [],
+    "createdAt": "2025-08-25T08:00:00.000Z",
+    "updatedAt": "2025-09-01T12:45:30.000Z",
+    "request_attempts": 2,
+    "invoice_no": ["INV-CHN-1001", "INV-CHN-1002"]
+  }]

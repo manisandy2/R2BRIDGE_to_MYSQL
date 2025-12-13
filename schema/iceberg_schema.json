@@ -1,0 +1,24 @@
+{
+  "iceberg_schema": {
+    "type": "struct",
+    "fields": [
+      {"id": 1, "name": "branch_code", "type": "string", "required": false},
+      {"id": 2, "name": "item_code", "type": "int", "required": false},
+      {"id": 3, "name": "item_name", "type": "string", "required": false},
+      {"id": 4, "name": "sern_fidt", "type": "int", "required": false},
+      {"id": 5, "name": "sern_rate", "type": "int", "required": false},
+      {"id": 6, "name": "imei_status", "type": "string", "required": false},
+      {"id": 7, "name": "serial_no", "type": "long", "required": false},
+      {"id": 8, "name": "product_name", "type": "string", "required": false},
+      {"id": 9, "name": "product_code", "type": "string", "required": false},
+      {"id": 10, "name": "brand_name", "type": "string", "required": false},
+      {"id": 11, "name": "brand_code", "type": "string", "required": false},
+      {"id": 12, "name": "category_name", "type": "string", "required": false},
+      {"id": 13, "name": "category_code", "type": "string", "required": false},
+      {"id": 14, "name": "stock_status_code", "type": "string", "required": false},
+      {"id": 15, "name": "stock_status_value", "type": "string", "required": false},
+      {"id": 16, "name": "product_img", "type": "string", "required": false},
+      {"id": 17, "name": "name", "type": "string", "required": false},
+      {"id": 18, "name": "apx_imei_status", "type": "string", "required": false}
+    ]
+  }
