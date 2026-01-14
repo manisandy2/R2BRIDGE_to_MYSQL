@@ -1,6 +1,6 @@
 from pyiceberg.catalog import load_catalog
 from pyiceberg.table import Table
-from core.catalog_client import get_catalog_client
+from ..core.catalog_client import get_catalog_client
 
 
 catalog = get_catalog_client()

@@ -1,19 +1,16 @@
-import pandas as pd
-# ##########
-data = pd.read_parquet(r"json_backups/ofs_stage.parquet")
-print(len(data))
-print(data)
-print(data.columns)
-
-for da in data.iterrows():
-    print(da)
-########
+# import pandas as pd
+# # ##########
+# data = pd.read_parquet(r"json_backups/ofs.parquet")
+# print(len(data))
+# print(data)
+# print(data["pri_id"])
+#########
 # for i in range(1,1000000):
 #     print(i)
 #
 # for index, row in data:
 #     print(row)
-#
+
 # print(data.get("Bill_Date__c"))
 
 # for date in data:
@@ -103,46 +100,46 @@ from pathlib import Path
 from typing import Dict, Any
 
 
-# def load_gzipped_json(filepath: str) -> Dict[str, Any]:
-#     """Load and parse a gzipped JSON file."""
-#     with gzip.open(filepath, "rb") as f:
-#         return json.loads(f.read().decode("utf-8"))
-#
-#
-# def process_metadata(filepath: str) -> None:
-#     """
-#     Process metadata from a gzipped JSON file and print its contents.
-#
-#     Args:
-#         filepath: Path to the gzipped JSON file
-#     """
-#     # Input validation
-#     if not Path(filepath).exists():
-#         print(f"Error: File not found: {filepath}")
-#         return
-#
-#     try:
-#         # Load and normalize data
-#         data = load_gzipped_json(filepath)
-#         df = pd.json_normalize(data)
-#
-#         # Print basic info
-#         print(f"Processing file: {filepath}")
-#         print(f"Total rows: {len(df)}")
-#         print(f"Columns: {', '.join(df.columns)}\n")
-#
-#         # Iterate through DataFrame more efficiently
-#         for idx, row in df.iterrows():
-#             print(f"--- Row {idx} ---")
-#             for col in df.columns:
-#                 print(f"{col}: {row[col]}")
-#             print("-" * 80)
-#
-#     except Exception as e:
-#         print(f"Error processing file: {e}")
-#
-#
-# if __name__ == "__main__":
-#     # Example usage
-#     file_path = "json_backups/001.metadata.json"
-#     process_metadata(file_path)
+def load_gzipped_json(filepath: str) -> Dict[str, Any]:
+    """Load and parse a gzipped JSON file."""
+    with gzip.open(filepath, "rb") as f:
+        return json.loads(f.read().decode("utf-8"))
+
+
+def process_metadata(filepath: str) -> None:
+    """
+    Process metadata from a gzipped JSON file and print its contents.
+
+    Args:
+        filepath: Path to the gzipped JSON file
+    """
+    # Input validation
+    if not Path(filepath).exists():
+        print(f"Error: File not found: {filepath}")
+        return
+
+    try:
+        # Load and normalize data
+        data = load_gzipped_json(filepath)
+        df = pd.json_normalize(data)
+
+        # Print basic info
+        print(f"Processing file: {filepath}")
+        print(f"Total rows: {len(df)}")
+        print(f"Columns: {', '.join(df.columns)}\n")
+
+        # Iterate through DataFrame more efficiently
+        for idx, row in df.iterrows():
+            print(f"--- Row {idx} ---")
+            for col in df.columns:
+                print(f"{col}: {row[col]}")
+            print("-" * 80)
+
+    except Exception as e:
+        print(f"Error processing file: {e}")
+
+
+if __name__ == "__main__":
+    # Example usage
+    file_path = "json_backups/001.metadata.json"
+    process_metadata(file_path)

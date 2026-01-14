@@ -1,58 +1,31 @@
-from fastapi import FastAPI,Query,HTTPException
-# from packaging.metadata import Metadata
-from botocore.exceptions import ClientError
-import time, json, boto3, os
 
-from .core import r2_client
+# from packaging.metadata import Metadata
+
 # from packaging.version import Version
 # from mysql_catalog import MysqlCatalog
 from .mysql_creds import  MysqlCatalog
-from pyiceberg.exceptions import NoSuchNamespaceError,NamespaceAlreadyExistsError,TableAlreadyExistsError
 # from creds import Creds
-from .creds import Creds
-from pydantic import BaseModel
-from pyiceberg.exceptions import NoSuchTableError
+# from .creds import Creds
 from .mapping import *
-from pyiceberg.schema import Schema, NestedField
 # from .creds import get_r2_client
-from .core.r2_client import get_r2_client
-from .core.catalog_client import get_catalog_client
-import json
-import time
-import os
-from fastapi import FastAPI, Query,Body, HTTPException,UploadFile, File
-from pyiceberg.catalog import load_catalog
-from pyiceberg.expressions import GreaterThanOrEqual,EqualTo
-from decimal import Decimal
+from fastapi import FastAPI, Query, HTTPException
 # from routers import namespace.router
-from typing import List
 import json
 import decimal
 import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-import re
 from mysql.connector import Error
-import pandas as pd
 import logging
-from .routers import (bucket, namespace, objects_folder,
-                      json_data_store, get_data, serial_data,
-                      database_to_transaction, crm_application,
-                      partition, schemas, columns, filter,bucket_data_store
-                      )
-from .routers.transaction_model02 import bucket as transaction_bucket
 from .routers.transaction_model02 import namespace as transaction_namespace
 from .routers.transaction_model02 import bucket_data_store01 as transaction_bds
-from .routers.transaction_model02 import database_to_transaction as transaction_database
 from .routers.transaction_model02 import table as transaction_table
 from .routers.transaction_model02 import meta_data as transaction_meta_data
-from .routers.transaction_model02 import cum_ph_01 as data_insert
+from .routers.transaction_model02 import cum_ph_02 as data_insert
 from .routers.transaction_model02 import filters as filters
 from .routers.transaction_model02 import multipart as multipart_data
 from .routers.transaction_model02 import parquet as parquet_table
 from .routers.transaction_model02 import avro as avro_files
 
 from .routers.transaction_model02 import schema as schema_schema
-from .routers.transaction_model02 import duckdb_cum_ph as duckdb_ph
 from .routers.transaction_model02 import Inspecting_tables as Inspecting_tables
 from .routers.transaction_model02 import partition as partition_schema
 from .routers.duckdb import r2_catalog_create_table

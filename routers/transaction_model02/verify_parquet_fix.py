@@ -1,10 +1,8 @@
 
 import sys
-import os
 import unittest
 from unittest.mock import MagicMock, patch
 import pandas as pd
-from fastapi import HTTPException
 
 # Adjust path to import the module
 sys.path.append("/Users/mac-1/Desktop/R2BridgeMysql")

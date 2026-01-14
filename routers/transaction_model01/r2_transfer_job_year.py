@@ -1,3 +1,13 @@
+import pyiceberg
+print(pyiceberg.__version__)
+
+# import requests
+# import time
+# import logging
+# from datetime import datetime
+
+###################################################
+# Bucket
 import requests
 import time
 import math
@@ -5,12 +15,14 @@ import logging
 from datetime import datetime
 
 # ------------------ CONFIGURATION ------------------
-# Bucket
-API_URL = "http://127.0.0.1:8000/transaction/create-pri-id"  # FastAPI endpoint
 
-BATCH_SIZE = 1000
 
-TOTAL_ROWS = 4000000
+API_URL = "http://127.0.0.1:8000/data/insert/year"  # FastAPI endpoint
+
+BATCH_SIZE = 100000
+START_ROWS = 7400000
+# TOTAL_ROWS = 10000000
+TOTAL_ROWS = 10000000
 
 MAX_RETRIES = 3
 SLEEP_BETWEEN_BATCHES = 2
@@ -40,7 +52,7 @@ failed_logger.setLevel(logging.ERROR)
 
 def transfer_batches():
     session = requests.Session()
-    start = 0
+    start = START_ROWS
     batch_no = 1
     total_batches = math.ceil(TOTAL_ROWS / BATCH_SIZE)
     success_batches = 0
@@ -96,4 +108,3 @@ def transfer_batches():
 
 if __name__ == "__main__":
     transfer_batches()
-
